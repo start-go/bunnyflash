@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Photo Strip Preview</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: '#F4F2EF',
+                        pink: '#CD4662',
+                        sage: '#AEC289',
+                        blush: '#F4DBDB',
+                    },
+                    fontFamily: {
+                        display: ['Quicksand', 'sans-serif'],
+                        body: ['Nunito', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-cream font-body">
+    <header class="py-4 bg-white shadow-sm">
+        <h1 class="text-2xl font-bold text-center text-pink font-display">Photo Strip Preview</h1>
+        <button id="customizeToggle" class="md:hidden fixed right-0 top-1/2 -translate-y-1/2 bg-sage text-white p-3 rounded-l-lg shadow-lg z-50 hover:bg-pink transition-colors">
+            <i class="fas fa-cog"></i>
+        </button>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 grid md:grid-cols-[1fr_auto] gap-6 max-w-7xl">
+        <div class="preview-section flex flex-col items-center gap-6">
+            <canvas id="stripCanvas" class="max-w-full rounded-lg shadow-lg bg-white"></canvas>
+            <div class="flex gap-4">
+                <button id="downloadButton" class="px-6 py-3 bg-sage text-white rounded-lg shadow hover:bg-pink transition-colors font-display font-bold">
+                    <i class="fas fa-download"></i><span class="ml-2">Download Photo Strip</span>
+                </button>
+                <button id="backButton" class="px-6 py-3 bg-blush text-pink rounded-lg shadow hover:bg-pink hover:text-white transition-colors font-display font-bold">
+                    <i class="fas fa-redo"></i><span class="ml-2">Take New Photos</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="customize-panel fixed md:static top-1/2 -translate-y-1/2 md:translate-y-0 right-[-320px] md:right-auto w-[320px] bg-white shadow-lg rounded-l-xl md:rounded-lg p-6 z-40 transition-all duration-300 max-h-[90vh] overflow-y-auto">
+            <div class="customize-content space-y-6">
+                <h3 class="text-xl font-bold text-pink font-display">Customize your photo strip</h3>
+                
+                <!-- Background Color Controls -->
+                <div class="space-y-4">
+                    <label class="font-display font-bold text-gray-700">Background:</label>
+                    <select id="backgroundType" class="w-full p-2 border-2 border-sage rounded-lg bg-white shadow-sm hover:border-pink focus:border-pink focus:ring-1 focus:ring-pink">
+                        <option value="solid">Solid Color</option>
+                        <option value="gradient">Gradient</option>
+                    </select>
+                    
+                    <div id="colorControls" class="space-y-4">
+                        <div id="solidControls">
+                            <input type="color" id="solidColor" value="#ffffff" class="w-full h-10 rounded-lg">
+                        </div>
+                        
+                        <div id="gradientControls" class="hidden space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="color" id="gradientColor1" value="#ffb6c1" class="w-full h-10 rounded-lg">
+                                <input type="color" id="gradientColor2" value="#cd4662" class="w-full h-10 rounded-lg">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="range" id="gradientAngle" min="0" max="360" value="0" class="w-full accent-pink">
+                                <span id="angleValue" class="text-sm font-medium">0°</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pattern Controls -->
+                <div class="space-y-4">
+                    <label class="font-display font-bold text-gray-700">Pattern Overlay:</label>
+                    <select id="patternType" class="w-full p-2 border-2 border-sage rounded-lg bg-white shadow-sm hover:border-pink focus:border-pink focus:ring-1 focus:ring-pink">
+                        <option value="none">No Pattern</option>
+                        <option value="hearts">Hearts (💗)</option>
+                        <option value="stars">Stars (⭐)</option>
+                        <option value="flowers">Flowers (🌸)</option>
+                        <option value="custom-emoji">Custom Emoji</option>
+                        <option value="custom-image">Custom Image</option>
+                    </select>
+
+                    <div id="patternControls" class="hidden space-y-4">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-search-minus text-pink"></i>
+                            <input type="range" id="patternSize" min="20" max="200" value="50" class="w-full accent-pink">
+                            <i class="fas fa-search-plus text-pink"></i>
+                            <span id="sizeValue" class="text-sm font-medium">50px</span>
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-arrows-alt-h text-pink"></i>
+                            <input type="range" id="patternSpacing" min="100" max="200" value="120" class="w-full accent-pink">
+                            <span id="spacingValue" class="text-sm font-medium">120%</span>
+                        </div>
+
+                        <div id="emojiInput" class="hidden">
+                            <input type="text" id="customEmoji" placeholder="Type or paste emoji here" maxlength="2" 
+                                   class="w-full p-2 border-2 border-sage rounded-lg focus:border-pink focus:ring-1 focus:ring-pink">
+                        </div>
+
+                        <div id="imageInput" class="hidden">
+                            <input type="file" id="customImage" accept="image/*" 
+                                   class="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-sage file:text-white hover:file:bg-pink">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sticker Controls -->
+                <div class="space-y-4">
+                    <label class="font-display font-bold text-gray-700">Sticker Overlay:</label>
+                    <select id="stickerSelect" class="w-full p-2 border-2 border-sage rounded-lg bg-white shadow-sm hover:border-pink focus:border-pink focus:ring-1 focus:ring-pink">
+                        <option value="none">No Stickers</option>
+                        <option value="fish">Fish</option>
+                        <option value="cute">Cute Stickers</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/preview.js"></script>
+
+    <style>
+        @keyframes slidePanelIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .customize-panel.open {
+            right: 0;
+            animation: slidePanelIn 0.3s ease-out;
+        }
+
+        @media (min-width: 768px) {
+            .customize-panel {
+                position: static;
+                transform: none;
+                animation: none;
+                right: auto;
+            }
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .customize-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .customize-panel::-webkit-scrollbar-track {
+            background: #F4F2EF;
+            border-radius: 3px;
+        }
+        
+        .customize-panel::-webkit-scrollbar-thumb {
+            background: #AEC289;
+            border-radius: 3px;
+        }
+        
+        .customize-panel::-webkit-scrollbar-thumb:hover {
+            background: #CD4662;
+        }
+    </style>
+</body>
+</html>

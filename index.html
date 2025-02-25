@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PhotoBooth Replica - Capture</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#F4F2EF',
+            pink: '#CD4662',
+            sage: '#AEC289',
+            blush: '#F4DBDB',
+          },
+          fontFamily: {
+            display: ['Quicksand', 'sans-serif'],
+            body: ['Nunito', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-cream font-body">
+  <header class="py-4 bg-white shadow-sm">
+    <h1 class="text-2xl font-bold text-center text-pink font-display">PhotoBooth Replica</h1>
+  </header>
+  
+  <main class="container mx-auto px-4 py-6 flex flex-col items-center gap-6 max-w-5xl">
+    <div class="w-full grid gap-6">
+      <!-- Webcam Select -->
+      <select id="webcamSelect" class="mx-auto w-64 p-2 border-2 border-sage rounded-lg bg-white shadow-sm focus:border-pink focus:ring-1 focus:ring-pink font-body">
+      </select>
+
+      <!-- Camera Section -->
+      <div class="grid md:grid-cols-[1fr_auto_1fr] gap-6 items-center">
+        <div class="hidden md:block"></div> <!-- Spacer -->
+        
+        <!-- Webcam Container -->
+        <div id="webcam-container" class="relative bg-black rounded-lg overflow-hidden shadow-lg">
+          <canvas id="webcam-canvas" width="640" height="480" class="w-full"></canvas>
+          <!-- Add Countdown Overlay -->
+          <div id="countdown" class="hidden absolute inset-0 flex items-center justify-center">
+            <span class="text-8xl font-display font-bold text-white drop-shadow-lg"></span>
+          </div>
+          <!-- Add Flash Overlay -->
+          <div id="flash" class="hidden absolute inset-0 bg-white pointer-events-none"></div>
+        </div>
+
+        <!-- Side Controls - Desktop -->
+        <div class="hidden md:flex flex-col gap-4 items-center w-48">
+          <select id="filterSelect" class="w-full p-2 border-2 border-sage rounded-lg bg-white shadow-sm hover:border-pink focus:border-pink focus:ring-1 focus:ring-pink">
+            <option value="none">No Filter</option>
+            <option value="sepia">Sepia</option>
+            <option value="grayscale">Black & White</option>
+            <option value="vintage">Vintage</option>
+            <option value="warm">Warm</option>
+            <option value="cool">Cool</option>
+            <option value="dramatic">Dramatic</option>
+            <option value="cinema">Cinema</option>
+          </select>
+          <button id="flipButton" class="w-full p-2 bg-blush text-pink rounded-lg shadow-sm hover:bg-pink hover:text-white transition-colors">
+            <i class="fas fa-sync"></i><span class="ml-2">Flip</span>
+          </button>
+          <div class="w-full">
+            <button id="toggleOverlay" class="w-full p-2 bg-white rounded-lg shadow-sm hover:bg-gray-50">
+              <i class="fas fa-image"></i><span class="ml-2">Add Overlay</span>
+            </button>
+            <div id="overlayControls" class="mt-4 hidden">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-search-minus"></i>
+                <input type="range" id="scaleSlider" min="10" max="300" value="30" step="5" class="w-full">
+                <i class="fas fa-search-plus"></i>
+                <span id="scaleValue" class="text-sm">30%</span>
+              </div>
+              
+              <div class="flex items-center gap-2 mb-2">
+                <i class="fas fa-undo"></i>
+                <input type="range" id="rotateSlider" min="-180" max="180" value="0" step="5" class="w-full">
+                <i class="fas fa-redo"></i>
+                <span id="rotateValue" class="text-sm">0°</span>
+              </div>
+
+              <div class="flex gap-2">
+                <button id="fitButton" class="flex-1 p-2 bg-white rounded-lg shadow-sm hover:bg-gray-50">
+                  <i class="fas fa-expand"></i><span class="ml-2">Fit</span>
+                </button>
+                <button id="autoCropButton" class="flex-1 p-2 bg-white rounded-lg shadow-sm hover:bg-gray-50">
+                  <i class="fas fa-crop-alt"></i><span class="ml-2">Crop</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Menu Toggle -->
+        <button class="mobile-menu-toggle md:hidden fixed right-0 top-1/2 -translate-y-1/2 bg-sage text-white p-3 rounded-l-lg shadow-lg z-50 hover:bg-pink transition-colors">
+          <i class="fas fa-cog"></i>
+        </button>
+
+        <!-- Side Controls - Mobile -->
+        <div class="side-controls fixed md:hidden top-1/2 -translate-y-1/2 right-[-280px] w-[280px] bg-white shadow-lg p-6 flex flex-col gap-4 z-40 transition-all duration-300 rounded-l-xl max-h-[80vh] overflow-y-auto">
+          <select id="filterSelect-mobile" class="w-full p-2 border-2 border-sage rounded-lg bg-white shadow-sm hover:border-pink focus:border-pink focus:ring-1 focus:ring-pink">
+            <option value="none">No Filter</option>
+            <option value="sepia">Sepia</option>
+            <option value="grayscale">Black & White</option>
+            <option value="vintage">Vintage</option>
+            <option value="warm">Warm</option>
+            <option value="cool">Cool</option>
+            <option value="dramatic">Dramatic</option>
+            <option value="cinema">Cinema</option>
+          </select>
+          
+          <button id="flipButton-mobile" class="w-full p-2 bg-blush text-pink rounded-lg shadow-sm hover:bg-pink hover:text-white transition-colors">
+            <i class="fas fa-sync"></i><span class="ml-2">Flip</span>
+          </button>
+          
+          <div class="w-full space-y-4">
+            <button id="toggleOverlay-mobile" class="w-full p-2 bg-blush text-pink rounded-lg shadow-sm hover:bg-pink hover:text-white transition-colors">
+              <i class="fas fa-image"></i><span class="ml-2">Add Overlay</span>
+            </button>
+            
+            <div id="overlayControls-mobile" class="hidden space-y-4">
+              <div class="flex items-center gap-2">
+                <i class="fas fa-search-minus text-pink"></i>
+                <input type="range" id="scaleSlider-mobile" min="10" max="300" value="30" step="5" 
+                       class="w-full accent-pink">
+                <i class="fas fa-search-plus text-pink"></i>
+                <span id="scaleValue-mobile" class="text-sm font-medium">30%</span>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <i class="fas fa-undo text-pink"></i>
+                <input type="range" id="rotateSlider-mobile" min="-180" max="180" value="0" step="5"
+                       class="w-full accent-pink">
+                <i class="fas fa-redo text-pink"></i>
+                <span id="rotateValue-mobile" class="text-sm font-medium">0°</span>
+              </div>
+
+              <div class="flex gap-2">
+                <button id="fitButton-mobile" class="flex-1 p-2 bg-blush text-pink rounded-lg shadow-sm hover:bg-pink hover:text-white transition-colors">
+                  <i class="fas fa-expand"></i><span class="ml-2">Fit</span>
+                </button>
+                <button id="autoCropButton-mobile" class="flex-1 p-2 bg-blush text-pink rounded-lg shadow-sm hover:bg-pink hover:text-white transition-colors">
+                  <i class="fas fa-crop-alt"></i><span class="ml-2">Crop</span>
+                </button>
+              </div>
+              
+              <button id="removeOverlay-mobile" class="w-full p-2 bg-pink text-white rounded-lg shadow-sm hover:bg-sage transition-colors">
+                <i class="fas fa-trash-alt"></i><span class="ml-2">Remove Overlay</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom Controls -->
+      <div class="flex flex-col gap-4 items-center">
+        <div class="flex gap-4">
+          <button id="captureButton" class="px-6 py-3 bg-sage text-white rounded-lg shadow hover:bg-pink transition-colors font-display font-bold">
+            <i class="fas fa-camera"></i><span class="ml-2">Capture</span>
+          </button>
+          <button id="retakeButton" class="px-6 py-3 bg-blush text-pink rounded-lg shadow hover:bg-pink hover:text-white transition-colors font-display font-bold" disabled>
+            <i class="fas fa-redo"></i><span class="ml-2">Retake</span>
+          </button>
+        </div>
+        <button id="nextButton" class="px-6 py-3 bg-pink text-white rounded-lg shadow hover:bg-sage transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-display font-bold" disabled>
+          <i class="fas fa-arrow-right"></i><span class="ml-2">Continue to Photo Strip</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Update thumbnails section -->
+    <div class="w-full max-w-full border-2 border-sage rounded-lg bg-white p-2 shadow-sm">
+      <div id="thumbnails" class="flex gap-2 overflow-x-auto h-[140px] px-2 py-1">
+        <!-- Thumbnails will be dynamically added here -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Preview Popup -->
+  <div id="previewPopup" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[100]">
+    <div class="bg-white rounded-lg p-4 max-w-2xl w-full mx-4 relative">
+      <button class="absolute top-2 right-2 text-gray-500 hover:text-pink">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+      <div class="flex flex-col gap-4">
+        <img id="previewImage" class="rounded-lg max-h-[70vh] object-contain mx-auto" src="" alt="Preview">
+        <div class="flex justify-center gap-4">
+          <button id="deletePhoto" class="px-6 py-2 bg-pink text-white rounded-lg shadow hover:bg-red-600 transition-colors font-display font-bold">
+            <i class="fas fa-trash-alt"></i><span class="ml-2">Delete Photo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="hiddenCanvas" class="hidden"></canvas>
+  <script type="module" src="js/main.js"></script>
+
+  <style>
+    /* Hide scrollbar but keep functionality */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Thumbnail styling */
+    #thumbnails img {
+      height: 120px;
+      width: auto;
+      object-fit: contain;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #thumbnails {
+      min-height: 120px;
+      padding: 0.5rem;
+    }
+    /* Thumbnail container scrollbar styling */
+    #thumbnails::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    #thumbnails::-webkit-scrollbar-track {
+      background: #F4F2EF;
+      border-radius: 3px;
+    }
+    
+    #thumbnails::-webkit-scrollbar-thumb {
+      background: #AEC289;
+      border-radius: 3px;
+    }
+    
+    #thumbnails::-webkit-scrollbar-thumb:hover {
+      background: #CD4662;
+    }
+
+    /* Thumbnail styling */
+    #thumbnails img {
+      height: 120px;
+      width: auto;
+      object-fit: contain;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    #thumbnails img:hover {
+      transform: scale(1.05);
+    }
+
+    /* Preview popup animation */
+    @keyframes popupFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    #previewPopup.flex {
+      animation: popupFade 0.2s ease-out;
+    }
+
+    /* Flash effect */
+    @keyframes flash {
+      0% { opacity: 0; }
+      50% { opacity: 0.9; }
+      100% { opacity: 0; }
+    }
+
+    #flash.active {
+      display: block !important;
+      animation: flash 500ms ease-out forwards;
+    }
+
+    /* Add new animations for mobile menu */
+    @keyframes slidePanelIn {
+      from { transform: translateX(100%) translateY(-50%); }
+      to { transform: translateX(0) translateY(-50%); }
+    }
+
+    .side-controls.open {
+      right: 0;
+      animation: slidePanelIn 0.3s ease-out;
+    }
+
+    /* Update scrollbar styling to match preview */
+    .side-controls::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .side-controls::-webkit-scrollbar-track {
+      background: #F4F2EF;
+      border-radius: 3px;
+    }
+    
+    .side-controls::-webkit-scrollbar-thumb {
+      background: #AEC289;
+      border-radius: 3px;
+    }
+    
+    .side-controls::-webkit-scrollbar-thumb:hover {
+      background: #CD4662;
+    }
+  </style>
+</body>
+</html>
