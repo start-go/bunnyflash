@@ -1,4 +1,4 @@
-import { initializeCamera, setupCameraControls } from './camera.js';
+import { initializeCamera } from './camera.js';
 import { initializeFilters } from './filters.js';
 import { initializeOverlay } from './overlay.js';
 import { initializeCountdown } from './countdown.js';
@@ -20,17 +20,19 @@ async function initialize() {
     const ctx = canvas.getContext('2d');
 
     // Initialize all modules
-    await initializeCamera(state);
+    await initializeCamera(state, canvas, ctx);
     initializeFilters(state, ctx);
     state.overlay = await initializeOverlay(state, ctx);
     initializeCountdown(state);
     setupEventListeners(state);
-    setupCameraControls(state);
 }
 
 // Start the application
-document.addEventListener('DOMContentLoaded', initialize);
+document.addEventListener('DOMContentLoaded', () => {
+    initialize();
+});
 
+// Mobile menu toggle
 document.querySelector('.mobile-menu-toggle').addEventListener('click', (e) => {
     e.stopPropagation();
     const sideControls = document.querySelector('.side-controls');
@@ -46,7 +48,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Sync mobile and desktop controls
+// Sync mobile and desktop controls (non-overlay related)
 document.getElementById('filterSelect-mobile').addEventListener('change', (e) => {
   document.getElementById('filterSelect').value = e.target.value;
   document.getElementById('filterSelect').dispatchEvent(new Event('change'));
@@ -54,38 +56,4 @@ document.getElementById('filterSelect-mobile').addEventListener('change', (e) =>
 
 document.getElementById('flipButton-mobile').addEventListener('click', () => {
   document.getElementById('flipButton').click();
-});
-
-document.getElementById('toggleOverlay-mobile').addEventListener('click', () => {
-  document.getElementById('overlayControls-mobile').classList.toggle('hidden');
-  document.getElementById('toggleOverlay').click();
-});
-
-document.getElementById('scaleSlider-mobile').addEventListener('input', (e) => {
-  document.getElementById('scaleSlider').value = e.target.value;
-  document.getElementById('scaleSlider').dispatchEvent(new Event('input'));
-  document.getElementById('scaleValue-mobile').textContent = e.target.value + '%';
-});
-
-document.getElementById('fitButton-mobile').addEventListener('click', () => {
-  document.getElementById('fitButton').click();
-});
-
-document.getElementById('autoCropButton-mobile').addEventListener('click', () => {
-  document.getElementById('autoCropButton').click();
-});
-
-document.getElementById('removeOverlay-mobile')?.addEventListener('click', () => {
-  const overlay = document.querySelector('.overlay-image');
-  if (overlay) {
-    overlay.remove();
-  }
-  document.getElementById('overlayControls-mobile').classList.add('hidden');
-  document.getElementById('toggleOverlay').click();
-});
-
-document.getElementById('rotateSlider-mobile').addEventListener('input', (e) => {
-  document.getElementById('rotateSlider').value = e.target.value;
-  document.getElementById('rotateSlider').dispatchEvent(new Event('input'));
-  document.getElementById('rotateValue-mobile').textContent = `${e.target.value}°`;
 });

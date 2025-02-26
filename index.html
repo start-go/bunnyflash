@@ -25,25 +25,156 @@
       },
     }
   </script>
+  <style>
+    /* Hide scrollbar but keep functionality */
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Thumbnail styling */
+    #thumbnails img {
+      height: 120px;
+      width: auto;
+      object-fit: contain;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #thumbnails {
+      min-height: 120px;
+      padding: 0.5rem;
+    }
+    /* Thumbnail container scrollbar styling */
+    #thumbnails::-webkit-scrollbar {
+      height: 6px;
+    }
+    
+    #thumbnails::-webkit-scrollbar-track {
+      background: #F4F2EF;
+      border-radius: 3px;
+    }
+    
+    #thumbnails::-webkit-scrollbar-thumb {
+      background: #AEC289;
+      border-radius: 3px;
+    }
+    
+    #thumbnails::-webkit-scrollbar-thumb:hover {
+      background: #CD4662;
+    }
+
+    /* Thumbnail styling */
+    #thumbnails img {
+      height: 120px;
+      width: auto;
+      object-fit: contain;
+      border-radius: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    #thumbnails img:hover {
+      transform: scale(1.05);
+    }
+
+    /* Preview popup animation */
+    @keyframes popupFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    #previewPopup.flex {
+      animation: popupFade 0.2s ease-out;
+    }
+
+    /* Flash effect */
+    @keyframes flash {
+      0% { opacity: 0; }
+      50% { opacity: 0.9; }
+      100% { opacity: 0; }
+    }
+
+    #flash.active {
+      display: block !important;
+      animation: flash 500ms ease-out forwards;
+    }
+
+    /* Add new animations for mobile menu */
+    @keyframes slidePanelIn {
+      from { transform: translateX(100%) translateY(-50%); }
+      to { transform: translateX(0) translateY(-50%); }
+    }
+
+    .side-controls.open {
+      right: 0;
+      animation: slidePanelIn 0.3s ease-out;
+    }
+
+    /* Update scrollbar styling to match preview */
+    .side-controls::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .side-controls::-webkit-scrollbar-track {
+      background: #F4F2EF;
+      border-radius: 3px;
+    }
+    
+    .side-controls::-webkit-scrollbar-thumb {
+      background: #AEC289;
+      border-radius: 3px;
+    }
+    
+    .side-controls::-webkit-scrollbar-thumb:hover {
+      background: #CD4662;
+    }
+
+    /* Replace previous container size styles with these responsive ones */
+    #webcam-container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Media query to ensure webcam fits in viewport height */
+    @media (min-height: 900px) {
+      #webcam-canvas {
+        max-height: 65vh;
+      }
+    }
+
+    @media (max-height: 700px) {
+      #webcam-canvas {
+        max-height: 55vh;
+      }
+    }
+  </style>
 </head>
 <body class="min-h-screen bg-cream font-body">
   <header class="py-4 bg-white shadow-sm">
     <h1 class="text-2xl font-bold text-center text-pink font-display">PhotoBooth Replica</h1>
   </header>
   
-  <main class="container mx-auto px-4 py-6 flex flex-col items-center gap-6 max-w-5xl">
+  <main class="container mx-auto px-4 py-6 flex flex-col items-center gap-6 max-w-6xl">
     <div class="w-full grid gap-6">
       <!-- Webcam Select -->
       <select id="webcamSelect" class="mx-auto w-64 p-2 border-2 border-sage rounded-lg bg-white shadow-sm focus:border-pink focus:ring-1 focus:ring-pink font-body">
       </select>
 
-      <!-- Camera Section -->
-      <div class="grid md:grid-cols-[1fr_auto_1fr] gap-6 items-center">
-        <div class="hidden md:block"></div> <!-- Spacer -->
+      <!-- Camera Section - Updated grid classes for better fit -->
+      <div class="grid md:grid-cols-[1fr_minmax(auto,4fr)_1fr] gap-6 items-center">
+        <!-- Left spacer/control area -->
+        <div class="hidden md:block"></div>
         
-        <!-- Webcam Container -->
-        <div id="webcam-container" class="relative bg-black rounded-lg overflow-hidden shadow-lg">
-          <canvas id="webcam-canvas" width="640" height="480" class="w-full"></canvas>
+        <!-- Webcam Container - Added max-height constraints -->
+        <div id="webcam-container" class="relative rounded-lg overflow-hidden w-auto mx-auto">
+          <canvas id="webcam-canvas" class="w-auto h-auto max-h-[50vh] shadow-lg"></canvas>
           <!-- Add Countdown Overlay -->
           <div id="countdown" class="hidden absolute inset-0 flex items-center justify-center">
             <span class="text-8xl font-display font-bold text-white drop-shadow-lg"></span>
@@ -203,113 +334,5 @@
 
   <canvas id="hiddenCanvas" class="hidden"></canvas>
   <script type="module" src="js/main.js"></script>
-
-  <style>
-    /* Hide scrollbar but keep functionality */
-    .hide-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .hide-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-    /* Thumbnail styling */
-    #thumbnails img {
-      height: 120px;
-      width: auto;
-      object-fit: contain;
-      border-radius: 0.5rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    #thumbnails {
-      min-height: 120px;
-      padding: 0.5rem;
-    }
-    /* Thumbnail container scrollbar styling */
-    #thumbnails::-webkit-scrollbar {
-      height: 6px;
-    }
-    
-    #thumbnails::-webkit-scrollbar-track {
-      background: #F4F2EF;
-      border-radius: 3px;
-    }
-    
-    #thumbnails::-webkit-scrollbar-thumb {
-      background: #AEC289;
-      border-radius: 3px;
-    }
-    
-    #thumbnails::-webkit-scrollbar-thumb:hover {
-      background: #CD4662;
-    }
-
-    /* Thumbnail styling */
-    #thumbnails img {
-      height: 120px;
-      width: auto;
-      object-fit: contain;
-      border-radius: 0.5rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-
-    #thumbnails img:hover {
-      transform: scale(1.05);
-    }
-
-    /* Preview popup animation */
-    @keyframes popupFade {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    #previewPopup.flex {
-      animation: popupFade 0.2s ease-out;
-    }
-
-    /* Flash effect */
-    @keyframes flash {
-      0% { opacity: 0; }
-      50% { opacity: 0.9; }
-      100% { opacity: 0; }
-    }
-
-    #flash.active {
-      display: block !important;
-      animation: flash 500ms ease-out forwards;
-    }
-
-    /* Add new animations for mobile menu */
-    @keyframes slidePanelIn {
-      from { transform: translateX(100%) translateY(-50%); }
-      to { transform: translateX(0) translateY(-50%); }
-    }
-
-    .side-controls.open {
-      right: 0;
-      animation: slidePanelIn 0.3s ease-out;
-    }
-
-    /* Update scrollbar styling to match preview */
-    .side-controls::-webkit-scrollbar {
-      width: 6px;
-    }
-    
-    .side-controls::-webkit-scrollbar-track {
-      background: #F4F2EF;
-      border-radius: 3px;
-    }
-    
-    .side-controls::-webkit-scrollbar-thumb {
-      background: #AEC289;
-      border-radius: 3px;
-    }
-    
-    .side-controls::-webkit-scrollbar-thumb:hover {
-      background: #CD4662;
-    }
-  </style>
 </body>
 </html>

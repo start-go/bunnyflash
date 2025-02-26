@@ -3,10 +3,21 @@ import { applyFilter } from './filters.js';
 export async function initializeCamera(state) {
     const canvas = document.getElementById('webcam-canvas');
     const ctx = canvas.getContext('2d');
+    const container = document.getElementById('webcam-container');
     
     function renderWebcam() {
         if (!state.videoElement) return;
 
+        // Set canvas dimensions to match video aspect ratio
+        const videoWidth = state.videoElement.videoWidth;
+        const videoHeight = state.videoElement.videoHeight;
+        const aspectRatio = videoWidth / videoHeight;
+        
+        // Determine optimal canvas size based on container width
+        const containerWidth = container.clientWidth;
+        canvas.width = containerWidth;
+        canvas.height = containerWidth / aspectRatio;
+        
         // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
@@ -19,7 +30,7 @@ export async function initializeCamera(state) {
             ctx.translate(-canvas.width, 0);
         }
         
-        // Draw the video feed
+        // Draw the video feed maintaining aspect ratio
         ctx.drawImage(state.videoElement, 0, 0, canvas.width, canvas.height);
         
         // Restore the context state
@@ -45,6 +56,19 @@ export async function initializeCamera(state) {
         requestAnimationFrame(() => renderWebcam());
     }
 
+    // Handle window resize events
+    window.addEventListener('resize', () => {
+        if (state.videoElement) {
+            const videoWidth = state.videoElement.videoWidth;
+            const videoHeight = state.videoElement.videoHeight;
+            const aspectRatio = videoWidth / videoHeight;
+            const containerWidth = container.clientWidth;
+            
+            canvas.width = containerWidth;
+            canvas.height = containerWidth / aspectRatio;
+        }
+    });
+
     const webcamSelect = document.getElementById('webcamSelect');
     
     async function getWebcams() {
@@ -68,9 +92,8 @@ export async function initializeCamera(state) {
 
         const constraints = {
             video: {
-                width: { ideal: 640 },
-                height: { ideal: 480 },
-                aspectRatio: 4/3,
+                width: { ideal: 1280 },  // Request higher resolution
+                height: { ideal: 720 },  // for better quality
                 deviceId: deviceId ? { exact: deviceId } : undefined
             },
             audio: false
@@ -90,6 +113,15 @@ export async function initializeCamera(state) {
                     resolve();
                 };
             });
+            
+            // Set initial canvas size based on video dimensions
+            const videoWidth = state.videoElement.videoWidth;
+            const videoHeight = state.videoElement.videoHeight;
+            const aspectRatio = videoWidth / videoHeight;
+            const containerWidth = container.clientWidth;
+            
+            canvas.width = containerWidth;
+            canvas.height = containerWidth / aspectRatio;
             
             // Start the render loop
             renderWebcam();
