@@ -202,9 +202,9 @@
         <!-- Left spacer/control area -->
         <div class="hidden md:block"></div>
         
-        <!-- Webcam Container - Added max-height constraints -->
-        <div id="webcam-container" class="relative rounded-lg overflow-hidden w-auto mx-auto">
-          <canvas id="webcam-canvas" class="w-auto h-auto max-h-[50vh] shadow-lg"></canvas>
+        <!-- Webcam Container with fixed 4:3 ratio -->
+        <div id="webcam-container" class="relative rounded-lg overflow-hidden w-920 md:w-920 mx-auto flex justify-center items-center">
+          <canvas id="webcam-canvas" class="bg-white rounded-lg shadow-lg "></canvas>
           <!-- Add Countdown Overlay -->
           <div id="countdown" class="hidden absolute inset-0 flex items-center justify-center">
             <span class="text-8xl font-display font-bold text-white drop-shadow-lg"></span>
@@ -324,12 +324,6 @@
       <!-- Bottom Controls -->
       <div class="flex flex-col gap-4 items-center">
         <div class="flex gap-4 items-center">
-          <!-- Add photo counter -->
-          <div class="photo-counter">
-            <i class="fas fa-images text-sage"></i>
-            <span><span id="photoCount" class="count">0</span>/<span id="maxPhotos">5</span></span>
-          </div>
-          
           <button id="captureButton" class="px-6 py-3 bg-sage text-white rounded-lg shadow hover:bg-pink transition-colors font-display font-bold">
             <i class="fas fa-camera"></i><span class="ml-2">Capture</span>
           </button>
@@ -340,11 +334,16 @@
         <button id="nextButton" class="px-6 py-3 bg-pink text-white rounded-lg shadow hover:bg-sage transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-display font-bold" disabled>
           <i class="fas fa-arrow-right"></i><span class="ml-2">Continue to Photo Strip</span>
         </button>
+        <!-- Add photo counter -->
+        <div class="photo-counter">
+          <i class="fas fa-images text-sage"></i>
+          <span><span id="photoCount" class="count">0</span>/<span id="maxPhotos">5</span></span>
+        </div>
       </div>
     </div>
 
     <!-- Update thumbnails section -->
-    <div class="w-full max-w-full border-2 border-sage rounded-lg bg-white p-2 shadow-sm">
+    <div id="thumbnailContainer" class="border-2 border-sage rounded-lg bg-white p-2 shadow-sm hidden">
       <div id="thumbnails" class="flex gap-2 overflow-x-auto h-[140px] px-2 py-1">
         <!-- Thumbnails will be dynamically added here -->
       </div>

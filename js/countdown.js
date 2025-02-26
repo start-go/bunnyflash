@@ -102,6 +102,14 @@ export function initializeCountdown(state) {
         
         // Update UI
         const thumbnailsDiv = document.getElementById('thumbnails');
+        const thumbnailContainer = document.getElementById('thumbnailContainer');
+
+        if (state.photos.length <= 0) {
+            thumbnailContainer.classList.add('hidden');
+        } else {
+            thumbnailContainer.classList.remove('hidden');
+        }
+
         thumbnailsDiv.innerHTML = '';
         state.photos.forEach((src, index) => {
             const img = document.createElement('img');

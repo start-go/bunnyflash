@@ -69,6 +69,16 @@ export function setupEventListeners(state) {
 
 export function updateThumbnails(photos) {
     const thumbnailsDiv = document.getElementById('thumbnails');
+    const thumbnailContainer = document.getElementById('thumbnailContainer');
+    
+    // Hide the container if no photos
+    if (photos.length <= 0) {
+        thumbnailContainer.classList.add('hidden');
+    } else {
+        thumbnailContainer.classList.remove('hidden');
+    }
+    
+    // Update thumbnails
     thumbnailsDiv.innerHTML = '';
     photos.forEach((src, index) => {
         const img = createThumbnail(src, index);

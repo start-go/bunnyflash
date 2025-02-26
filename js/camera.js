@@ -12,8 +12,8 @@ export async function initializeCamera(state) {
         const videoWidth = state.videoElement.videoWidth;
         const videoHeight = state.videoElement.videoHeight;
         
-        // Set canvas to a fixed 4:3 aspect ratio
-        const containerWidth = container.clientWidth;
+        // Set canvas to a fixed 4:3 aspect ratio, but 30% smaller
+        const containerWidth = container.clientWidth * 0.7; // 70% of original size (30% smaller)
         canvas.width = containerWidth;
         canvas.height = containerWidth * (3/4); // 4:3 aspect ratio
         
@@ -76,9 +76,9 @@ export async function initializeCamera(state) {
         requestAnimationFrame(() => renderWebcam());
     }
 
-    // Update window resize handler to maintain 4:3 aspect ratio
+    // Update window resize handler to maintain 4:3 aspect ratio at 70% size
     window.addEventListener('resize', () => {
-        const containerWidth = container.clientWidth;
+        const containerWidth = container.clientWidth * 0.7; // 70% of original size
         canvas.width = containerWidth;
         canvas.height = containerWidth * (3/4); // 4:3 aspect ratio
     });
@@ -106,8 +106,8 @@ export async function initializeCamera(state) {
 
         const constraints = {
             video: {
-                width: { ideal: 1280 },  // Request higher resolution
-                height: { ideal: 720 },  // for better quality
+                width: { ideal: 1920 },  // Request higher resolution
+                height: { ideal: 1080 },  // for better quality
                 deviceId: deviceId ? { exact: deviceId } : undefined
             },
             audio: false
@@ -128,11 +128,11 @@ export async function initializeCamera(state) {
                 };
             });
             
-            // Set initial canvas size based on video dimensions
+            // Set initial canvas size based on video dimensions at 70% size
             const videoWidth = state.videoElement.videoWidth;
             const videoHeight = state.videoElement.videoHeight;
             const aspectRatio = videoWidth / videoHeight;
-            const containerWidth = container.clientWidth;
+            const containerWidth = container.clientWidth * 0.7; // 70% of container width
             
             canvas.width = containerWidth;
             canvas.height = containerWidth / aspectRatio;

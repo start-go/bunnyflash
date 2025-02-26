@@ -282,23 +282,23 @@ function createGradient() {
 
 function drawTimestampAndCopyright() {
     const now = new Date();
-    const timestamp = now.toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: 'numeric'
-    }) + '  ' + now.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
+    // const timestamp = now.toLocaleDateString('en-US', {
+    //     month: '2-digit',
+    //     day: '2-digit',
+    //     year: 'numeric'
+    // }) + '  ' + now.toLocaleTimeString('en-US', {
+    //     hour: '2-digit',
+    //     minute: '2-digit',
+    //     hour12: true
+    // });
     
     ctx.fillStyle = "#000000";
-    ctx.font = "20px Arial";
+    ctx.font = "20px Nunito";
     ctx.textAlign = "center";
-    ctx.fillText("Picapica  " + timestamp, canvas.width / 2, canvas.height - 40);
+    ctx.fillText("🐰⚡", canvas.width / 2, canvas.height - 40);
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    ctx.font = "12px Arial";
-    ctx.fillText("© 2025 AW", canvas.width - 40, canvas.height - 20);
+    ctx.font = "12px Nunito";
+    ctx.fillText("© 2025", canvas.width - 40, canvas.height - 20);
 }
 
 // Update canvas size handling
