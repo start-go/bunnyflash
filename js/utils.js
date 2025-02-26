@@ -1,12 +1,16 @@
 export function setupEventListeners(state) {
     const retakeButton = document.getElementById('retakeButton');
     const nextButton = document.getElementById('nextButton');
+    const photoCountElement = document.getElementById('photoCount');
 
     retakeButton.addEventListener('click', () => {
         if (state.photos.length > 0) {
             state.photos.pop();
             updateThumbnails(state.photos);
             updateButtons(state);
+            
+            // Update photo counter
+            photoCountElement.textContent = state.photos.length;
         }
     });
 
@@ -49,6 +53,10 @@ export function setupEventListeners(state) {
             state.photos.splice(currentPhotoIndex, 1);
             updateThumbnails(state.photos);
             updateButtons(state);
+            
+            // Update photo counter
+            photoCountElement.textContent = state.photos.length;
+            
             hidePreview();
         }
     });

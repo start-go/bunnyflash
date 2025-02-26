@@ -154,6 +154,36 @@
         max-height: 55vh;
       }
     }
+
+    /* Styling for photo counter */
+    .photo-counter {
+      background-color: white;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .photo-counter .count {
+      color: #CD4662;
+      font-size: 1.25rem;
+    }
+    
+    /* Max photos popup animation */
+    @keyframes shakeAnimation {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+    
+    .shake {
+      animation: shakeAnimation 0.5s ease-in-out;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-cream font-body">
@@ -293,7 +323,13 @@
 
       <!-- Bottom Controls -->
       <div class="flex flex-col gap-4 items-center">
-        <div class="flex gap-4">
+        <div class="flex gap-4 items-center">
+          <!-- Add photo counter -->
+          <div class="photo-counter">
+            <i class="fas fa-images text-sage"></i>
+            <span><span id="photoCount" class="count">0</span>/<span id="maxPhotos">5</span></span>
+          </div>
+          
           <button id="captureButton" class="px-6 py-3 bg-sage text-white rounded-lg shadow hover:bg-pink transition-colors font-display font-bold">
             <i class="fas fa-camera"></i><span class="ml-2">Capture</span>
           </button>
@@ -326,6 +362,25 @@
         <div class="flex justify-center gap-4">
           <button id="deletePhoto" class="px-6 py-2 bg-pink text-white rounded-lg shadow hover:bg-red-600 transition-colors font-display font-bold">
             <i class="fas fa-trash-alt"></i><span class="ml-2">Delete Photo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Max Photos Popup -->
+  <div id="maxPhotosPopup" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[100]">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 relative">
+      <button class="absolute top-2 right-2 text-gray-500 hover:text-pink">
+        <i class="fas fa-times text-xl"></i>
+      </button>
+      <div class="flex flex-col gap-4 items-center text-center">
+        <i class="fas fa-exclamation-circle text-pink text-4xl"></i>
+        <h2 class="text-xl font-bold font-display">Maximum Photos Reached</h2>
+        <p class="text-gray-700">You've reached the maximum limit of 5 photos. Please delete some photos to capture more or continue to the photo strip.</p>
+        <div class="flex gap-4 mt-2">
+          <button id="maxPhotosOkBtn" class="px-6 py-2 bg-sage text-white rounded-lg shadow hover:bg-pink transition-colors font-display font-bold">
+            OK
           </button>
         </div>
       </div>

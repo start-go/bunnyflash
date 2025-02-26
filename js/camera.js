@@ -8,15 +8,31 @@ export async function initializeCamera(state) {
     function renderWebcam() {
         if (!state.videoElement) return;
 
-        // Set canvas dimensions to match video aspect ratio
+        // Get video dimensions
         const videoWidth = state.videoElement.videoWidth;
         const videoHeight = state.videoElement.videoHeight;
-        const aspectRatio = videoWidth / videoHeight;
         
-        // Determine optimal canvas size based on container width
+        // Set canvas to a fixed 4:3 aspect ratio
         const containerWidth = container.clientWidth;
         canvas.width = containerWidth;
-        canvas.height = containerWidth / aspectRatio;
+        canvas.height = containerWidth * (3/4); // 4:3 aspect ratio
+        
+        // Calculate scaling and positioning to maintain aspect ratio with cropping if needed
+        let drawWidth, drawHeight, drawX = 0, drawY = 0;
+        const videoRatio = videoWidth / videoHeight;
+        const canvasRatio = canvas.width / canvas.height; // Will be 4:3
+        
+        if (videoRatio >= canvasRatio) {
+            // Video is wider than 4:3 - crop sides
+            drawHeight = videoHeight;
+            drawWidth = videoHeight * canvasRatio;
+            drawX = (videoWidth - drawWidth) / 2;
+        } else {
+            // Video is taller than 4:3 - crop top/bottom
+            drawWidth = videoWidth;
+            drawHeight = videoWidth / canvasRatio;
+            drawY = (videoHeight - drawHeight) / 2;
+        }
         
         // Clear the canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -30,8 +46,12 @@ export async function initializeCamera(state) {
             ctx.translate(-canvas.width, 0);
         }
         
-        // Draw the video feed maintaining aspect ratio
-        ctx.drawImage(state.videoElement, 0, 0, canvas.width, canvas.height);
+        // Draw the video feed with proper cropping to maintain 4:3 aspect ratio
+        ctx.drawImage(
+            state.videoElement, 
+            drawX, drawY, drawWidth, drawHeight, // Source crop
+            0, 0, canvas.width, canvas.height    // Destination (full canvas)
+        );
         
         // Restore the context state
         ctx.restore();
@@ -56,17 +76,11 @@ export async function initializeCamera(state) {
         requestAnimationFrame(() => renderWebcam());
     }
 
-    // Handle window resize events
+    // Update window resize handler to maintain 4:3 aspect ratio
     window.addEventListener('resize', () => {
-        if (state.videoElement) {
-            const videoWidth = state.videoElement.videoWidth;
-            const videoHeight = state.videoElement.videoHeight;
-            const aspectRatio = videoWidth / videoHeight;
-            const containerWidth = container.clientWidth;
-            
-            canvas.width = containerWidth;
-            canvas.height = containerWidth / aspectRatio;
-        }
+        const containerWidth = container.clientWidth;
+        canvas.width = containerWidth;
+        canvas.height = containerWidth * (3/4); // 4:3 aspect ratio
     });
 
     const webcamSelect = document.getElementById('webcamSelect');
