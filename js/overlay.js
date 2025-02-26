@@ -1,8 +1,54 @@
 import { AutoModel, AutoProcessor, RawImage } from "https://cdn.jsdelivr.net/npm/@xenova/transformers";
 
-let model, processor;
+// Initialize the transformer worker
+let transformerWorker;
+let isWorkerLoaded = false;
+let modelLoadingPromise = null;
 
 // Shared functions
+function initWorker() {
+    if (transformerWorker) return;
+    
+    try {
+        transformerWorker = new Worker(new URL("transformer-worker.js", import.meta.url), {
+            type: 'module'
+        });
+        
+        transformerWorker.onmessage = (event) => {
+            const { type, message, imageBlob } = event.data;
+            
+            if (type === 'ready') {
+                isWorkerLoaded = true;
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                console.log('Transformer worker is ready');
+            } else if (type === 'log') {
+                console.log('Worker:', message);
+            } else if (type === 'error') {
+                console.error('Worker error:', message);
+                
+                // If we get an import error, fall back to main thread
+                if (message.includes('Failed to import')) {
+                    console.warn('Worker failed to import transformers library. Falling back to main thread processing.');
+                    isWorkerLoaded = false;
+                }
+            }
+        };
+        
+        // Add error handler for worker initialization
+        transformerWorker.onerror = (error) => {
+            console.error('Worker initialization error:', error);
+            isWorkerLoaded = false;
+        };
+    } catch (error) {
+        console.error('Failed to initialize worker:', error);
+        // Fall back to main thread processing if worker fails
+        isWorkerLoaded = false;
+    }
+}
+
+// Fallback direct processing when worker fails
+let model, processor;
+
 async function initModel() {
     try {
         if (navigator.gpu) {
@@ -37,8 +83,90 @@ async function initModel() {
     }
 }
 
-async function removeBackground(img) {
+async function removeBackgroundWithWorker(img) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Show loading indicator with initial status
+            document.getElementById('loadingStatus').textContent = 'Processing image...';
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            
+            // Convert image to blob first
+            fetch(img.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    // Create a unique message handler for this specific request
+                    const messageHandler = (event) => {
+                        const { type, imageBlob, width, height, message } = event.data;
+                        
+                        if (type === 'result') {
+                            const base64data = event.data.imageData;
+                            fetch(base64data)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    const url = URL.createObjectURL(blob);
+                                    const resultImg = new Image();
+
+                                    resultImg.onload = () => {
+                                        const canvas = document.createElement('canvas');
+                                        canvas.width = event.data.width;
+                                        canvas.height = event.data.height;
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.drawImage(resultImg, 0, 0);
+
+                                        URL.revokeObjectURL(url);
+                                        transformerWorker.removeEventListener('message', messageHandler);
+
+                                        document.getElementById('loadingOverlay').classList.add('hidden');
+                                        resolve(canvas);
+                                    };
+
+                                    resultImg.onerror = (err) => {
+                                        console.error('Error loading processed image', err);
+                                        document.getElementById('loadingOverlay').classList.add('hidden');
+                                        transformerWorker.removeEventListener('message', messageHandler);
+                                        reject(err);
+                                    };
+
+                                    resultImg.src = url;
+                                });
+                        } else if (type === 'error') {
+                            console.error('Worker processing error:', message);
+                            document.getElementById('loadingOverlay').classList.add('hidden');
+                            transformerWorker.removeEventListener('message', messageHandler);
+                            reject(new Error(message));
+                        } else if (type === 'status') {
+                            document.getElementById('loadingStatus').textContent = message;
+                        }
+                    };
+                    
+                    // Add temporary listener for this specific processing job
+                    transformerWorker.addEventListener('message', messageHandler);
+                    
+                    // Send the blob to the worker - Fix for transfer issue
+                    transformerWorker.postMessage({
+                        type: 'process',
+                        data: blob
+                    });
+                    
+                })
+                .catch(error => {
+                    console.error('Error preparing image for worker:', error);
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    reject(error);
+                });
+        } catch (error) {
+            console.error('Unexpected error in worker processing:', error);
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            reject(error);
+        }
+    });
+}
+
+async function removeBackgroundFallback(img) {
     try {
+        document.getElementById('loadingStatus').textContent = 'Removing background...';
+        document.getElementById('loadingOverlay').classList.remove('hidden');
+        
         if (!model || !processor) await initModel();
         const image = await RawImage.fromURL(img.src);
         const { pixel_values } = await processor(image);
@@ -58,10 +186,25 @@ async function removeBackground(img) {
         }
         ctx.putImageData(pixelData, 0, 0);
 
+        document.getElementById('loadingOverlay').classList.add('hidden');
         return canvas;
     } catch (error) {
         console.error('Background removal failed:', error);
+        document.getElementById('loadingOverlay').classList.add('hidden');
         return img;
+    }
+}
+
+async function removeBackground(img) {
+    if (isWorkerLoaded) {
+        try {
+            return await removeBackgroundWithWorker(img);
+        } catch (error) {
+            console.error('Worker processing failed, falling back to main thread:', error);
+            return removeBackgroundFallback(img);
+        }
+    } else {
+        return removeBackgroundFallback(img);
     }
 }
 
@@ -179,6 +322,9 @@ function updateUI(state, elements) {
 }
 
 export async function initializeOverlay(state) {
+    // Initialize worker in the background
+    initWorker();
+    
     // Initialize state
     state.overlay = {
         x: 50,
@@ -197,7 +343,8 @@ export async function initializeOverlay(state) {
             isOpen: false,
             scale: 30,
             rotation: 0
-        }
+        },
+        isProcessingOverlay: false // Add flag to track overlay processing state
     };
 
     // Get all DOM elements
@@ -288,11 +435,18 @@ export async function initializeOverlay(state) {
     }
 
     // Setup event handlers
-    function handleOverlayToggle() {
+    function handleOverlayToggle(event) {
+        // Determine if this click came from the mobile menu
+        const isFromMobileMenu = event && event.currentTarget && 
+                                event.currentTarget.id === "toggleOverlay-mobile";
+        
         if (state.overlayImage) {
             state.overlayImage = null;
             state.overlay.controls.isOpen = false;
         } else {
+            // Set processing flag to prevent menu closure
+            state.overlay.isProcessingOverlay = true;
+            
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
@@ -315,13 +469,39 @@ export async function initializeOverlay(state) {
                             
                             fitImageToFrame(state, elements);
                             setupDragHandlers();
+                            
+                            // Reset processing flag
+                            state.overlay.isProcessingOverlay = false;
+                            
+                            // If this was initiated from the mobile menu, make sure it stays open
+                            if (isFromMobileMenu && state.mobileMenuOpen !== undefined) {
+                                // Keep the mobile menu open
+                                state.mobileMenuOpen = true;
+                                const sideControls = document.querySelector('.side-controls');
+                                if (sideControls) sideControls.classList.add('open');
+                            }
                         } catch (error) {
                             console.error('Error processing image:', error);
                             alert('Error processing image. Please try another one.');
+                            state.overlay.isProcessingOverlay = false;
                         }
                     };
+                } else {
+                    // Reset processing flag if no file was selected
+                    state.overlay.isProcessingOverlay = false;
                 }
             };
+            
+            // Handle the case where the file dialog is canceled
+            const checkFileDialogClosed = setTimeout(() => {
+                state.overlay.isProcessingOverlay = false;
+            }, 1000);
+            
+            input.addEventListener('cancel', () => {
+                clearTimeout(checkFileDialogClosed);
+                state.overlay.isProcessingOverlay = false;
+            });
+            
             input.click();
         }
         updateUI(state, elements);
@@ -368,7 +548,6 @@ export async function initializeOverlay(state) {
     elements.removeOverlayMobile?.addEventListener('click', handleOverlayToggle);
 
     // Initialize model and export draw function
-    await initModel();
     state.drawOverlay = (ctx) => drawOverlay(ctx, state);
 
     return state.overlay;

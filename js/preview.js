@@ -116,7 +116,42 @@ const frames = {
     }
 };
 
-function generatePhotoStrip() {
+// Add a debounce utility function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Store preloaded images
+const preloadedImages = [];
+
+// Create a function to preload all images at once
+function preloadImages() {
+    return new Promise(resolve => {
+        let imagesLoaded = 0;
+        capturedImages.forEach((imageSrc, index) => {
+            const img = new Image();
+            img.onload = () => {
+                preloadedImages[index] = img;
+                imagesLoaded++;
+                if (imagesLoaded === capturedImages.length) {
+                    resolve();
+                }
+            };
+            img.src = imageSrc;
+        });
+    });
+}
+
+// Split the photo strip generation into layers for smoother updates
+async function generatePhotoStrip(redrawBackground = true) {
     const imgWidth = 400;
     const imgHeight = 300;
     const borderSize = 40;
@@ -125,29 +160,105 @@ function generatePhotoStrip() {
     const numPhotos = capturedImages.length;
     const totalHeight = (imgHeight * numPhotos) + (photoSpacing * (numPhotos - 1)) + (borderSize * 2) + textHeight;
 
-    canvas.width = imgWidth + borderSize * 2;
-    canvas.height = totalHeight;
+    // Only resize canvas when necessary
+    if (canvas.width !== imgWidth + borderSize * 2 || canvas.height !== totalHeight) {
+        canvas.width = imgWidth + borderSize * 2;
+        canvas.height = totalHeight;
+        // Force full redraw when canvas size changes
+        redrawBackground = true;
+    }
 
-    fillBackground(() => {
-        let imagesLoaded = 0;
-        capturedImages.forEach((imageSrc, index) => {
-            const img = new Image();
-            img.src = imageSrc;
-            img.onload = function() {
-                const yOffset = borderSize + (imgHeight + photoSpacing) * index;
-                drawPhoto(img, borderSize, yOffset, imgWidth, imgHeight);
-                
-                if (frames[selectedFrame]) {
-                    frames[selectedFrame].draw(ctx, borderSize, yOffset, imgWidth, imgHeight);
-                }
-                
-                imagesLoaded++;
-                if (imagesLoaded === capturedImages.length) {
-                    drawTimestampAndCopyright();
-                }
-            };
-        });
+    // Step 1: Draw or update background
+    if (redrawBackground) {
+        if (backgroundType.value === "gradient") {
+            ctx.fillStyle = createGradient();
+        } else {
+            ctx.fillStyle = solidColor.value;
+        }
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Apply pattern overlay if needed
+        await drawPatternIfNeeded();
+    }
+
+    // Step 2: Draw photos on top of background
+    // Ensure preloadedImages are available before drawing
+    if (preloadedImages.length !== capturedImages.length) {
+        await preloadImages();
+    }
+
+    preloadedImages.forEach((img, index) => {
+        const yOffset = borderSize + (imgHeight + photoSpacing) * index;
+        drawPhoto(img, borderSize, yOffset, imgWidth, imgHeight);
+        
+        if (frames[selectedFrame]) {
+            frames[selectedFrame].draw(ctx, borderSize, yOffset, imgWidth, imgHeight);
+        }
     });
+
+    // Step 3: Draw copyright and timestamp
+    drawTimestampAndCopyright();
+
+    return true;
+}
+
+// Extract pattern drawing to a separate async function
+async function drawPatternIfNeeded() {
+    if (patternType.value === "none") return;
+    
+    const spacing = parseInt(patternSpacing.value) / 100;
+    
+    if (patternType.value === "custom-emoji" && customEmoji.value) {
+        const pattern = createEmojiPattern(
+            customEmoji.value,
+            patternScale,
+            spacing
+        );
+        drawPatternOverlay(pattern);
+    } 
+    else if (patternType.value === "custom-image" && customImageData) {
+        await new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => {
+                const patternCanvas = document.createElement('canvas');
+                patternCanvas.width = patternScale;
+                patternCanvas.height = patternScale;
+                const patternCtx = patternCanvas.getContext('2d');
+                patternCtx.drawImage(img, 0, 0, patternScale, patternScale);
+                
+                const pattern = ctx.createPattern(patternCanvas, "repeat");
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = pattern;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalAlpha = 1.0;
+                resolve();
+            };
+            img.src = customImageData;
+        });
+    } 
+    else if (emojiPatterns[patternType.value]) {
+        const pattern = createEmojiPattern(
+            emojiPatterns[patternType.value].emoji,
+            patternScale,
+            spacing
+        );
+        drawPatternOverlay(pattern);
+    }
+}
+
+// Modify how pattern overlay is drawn
+function drawPatternOverlay(patternCanvas) {
+    const pattern = ctx.createPattern(patternCanvas, "repeat");
+    ctx.globalAlpha = 0.5; // Add some transparency to the pattern
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1.0;
+}
+
+// Replace original fillBackground function with the new separated approach 
+// (keeping it for compatibility but making it use the new approach)
+function fillBackground(callback) {
+    generatePhotoStrip().then(callback);
 }
 
 function drawPhoto(img, x, y, targetWidth, targetHeight) {
@@ -209,58 +320,6 @@ function drawCustomImagePattern(imageUrl, size, callback) {
     img.src = imageUrl;
 }
 
-// Update fillBackground function to properly handle layers
-function fillBackground(callback) {
-    // First draw background
-    if (backgroundType.value === "gradient") {
-        ctx.fillStyle = createGradient();
-    } else {
-        ctx.fillStyle = solidColor.value;
-    }
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Then draw pattern if selected
-    if (patternType.value !== "none") {
-        const spacing = parseInt(patternSpacing.value) / 100;
-        
-        if (patternType.value === "custom-emoji" && customEmoji.value) {
-            const pattern = createEmojiPattern(
-                customEmoji.value,
-                patternScale,
-                spacing
-            );
-            drawPatternOverlay(pattern, callback);
-        } 
-        else if (patternType.value === "custom-image" && customImageData) {
-            drawCustomImagePattern(customImageData, patternScale, callback);
-            return; // Exit early as callback is handled in drawCustomImagePattern
-        } 
-        else if (emojiPatterns[patternType.value]) {
-            const pattern = createEmojiPattern(
-                emojiPatterns[patternType.value].emoji,
-                patternScale,
-                spacing
-            );
-            drawPatternOverlay(pattern, callback);
-        }
-        else {
-            callback();
-        }
-    } else {
-        callback();
-    }
-}
-
-// Add new function to handle pattern overlay drawing
-function drawPatternOverlay(patternCanvas, callback) {
-    const pattern = ctx.createPattern(patternCanvas, "repeat");
-    ctx.globalAlpha = 0.5; // Add some transparency to the pattern
-    ctx.fillStyle = pattern;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.globalAlpha = 1.0;
-    callback();
-}
-
 function createGradient() {
     const w = canvas.width;
     const h = canvas.height;
@@ -293,11 +352,11 @@ function drawTimestampAndCopyright() {
     // });
     
     ctx.fillStyle = "#000000";
-    ctx.font = "20px Nunito";
+    ctx.font = "30pt Nunito";
     ctx.textAlign = "center";
-    ctx.fillText("🐰⚡", canvas.width / 2, canvas.height - 40);
+    ctx.fillText("🐰⚡", canvas.width / 2, canvas.height - 30);
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    ctx.font = "12px Nunito";
+    ctx.font = "12pt Nunito";
     ctx.fillText("© 2025", canvas.width - 40, canvas.height - 20);
 }
 
@@ -317,38 +376,52 @@ window.addEventListener('resize', () => {
     generatePhotoStrip();
 });
 
-// Event Listeners
+// Use a debounced version for color inputs to prevent too frequent redraws
+const debouncedGeneratePhotoStrip = debounce(() => {
+    requestAnimationFrame(() => generatePhotoStrip(true));
+}, 50);
+
+// Initialize the photo strip once the page loads
+window.addEventListener('DOMContentLoaded', async () => {
+    await preloadImages();
+    generatePhotoStrip();
+});
+
+// Update the event listeners to use the debounced version for color changes
+[solidColor, gradientColor1, gradientColor2].forEach(el => {
+    if (el) el.addEventListener("input", debouncedGeneratePhotoStrip);
+});
+
+// Other event listeners may not need debouncing
 backgroundType.addEventListener("change", (e) => {
     solidControls.style.display = e.target.value === "solid" ? "block" : "none";
     gradientControls.style.display = e.target.value === "gradient" ? "block" : "none";
-    generatePhotoStrip();
+    generatePhotoStrip(true);
 });
 
 patternType.addEventListener("change", (e) => {
     patternControls.style.display = e.target.value !== "none" ? "block" : "none";
     emojiInput.style.display = e.target.value === "custom-emoji" ? "block" : "none";
     imageInput.style.display = e.target.value === "custom-image" ? "block" : "none";
-    generatePhotoStrip();
+    generatePhotoStrip(true);
 });
 
-[solidColor, gradientColor1, gradientColor2, customEmoji].forEach(el => {
-    if (el) el.addEventListener("input", generatePhotoStrip);
-});
+customEmoji.addEventListener("input", () => generatePhotoStrip(true));
 
 gradientAngle.addEventListener("input", (e) => {
     angleValue.textContent = `${e.target.value}°`;
-    generatePhotoStrip();
+    debouncedGeneratePhotoStrip();
 });
 
 patternSize.addEventListener("input", (e) => {
     patternScale = parseInt(e.target.value);
     sizeValue.textContent = `${patternScale}px`;
-    generatePhotoStrip();
+    debouncedGeneratePhotoStrip();
 });
 
 patternSpacing.addEventListener("input", (e) => {
     spacingValue.textContent = `${e.target.value}%`;
-    generatePhotoStrip();
+    debouncedGeneratePhotoStrip();
 });
 
 customImage.addEventListener("change", (e) => {
@@ -357,7 +430,7 @@ customImage.addEventListener("change", (e) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             customImageData = e.target.result;
-            generatePhotoStrip();
+            generatePhotoStrip(true);
         };
         reader.readAsDataURL(file);
     }
@@ -365,7 +438,7 @@ customImage.addEventListener("change", (e) => {
 
 stickerSelect.addEventListener("change", (e) => {
     selectedFrame = e.target.value;
-    generatePhotoStrip();
+    generatePhotoStrip(false);  // No need to redraw background
 });
 
 downloadButton.addEventListener("click", () => {

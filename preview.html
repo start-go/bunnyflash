@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Photo Strip Preview</title>
+    <!-- Add favicon links -->
+    <link rel="icon" href="assets/images/favicon/icon.png" type="image/png">
+    <link rel="shortcut icon" href="assets/images/favicon/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="assets/images/favicon/icon.png">
+    <!-- Existing CSS links -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -28,8 +33,8 @@
 </head>
 <body class="min-h-screen bg-cream font-body">
     <header class="py-4 bg-white shadow-sm">
-        <h1 class="text-2xl font-bold text-center text-pink font-display">Photo Strip Preview</h1>
-        <button id="customizeToggle" class="md:hidden fixed right-0 top-1/2 -translate-y-1/2 bg-sage text-white p-3 rounded-l-lg shadow-lg z-50 hover:bg-pink transition-colors">
+        <h1 class="text-2xl font-bold text-center text-pink font-display">PhotoStrip 🐰⚡</h1>
+        <button id="customizeToggle" class="md:hidden fixed right-0 bottom-1 -translate-y-1/2 bg-sage text-white p-3 rounded-l-lg shadow-lg z-50 hover:bg-pink transition-colors">
             <i class="fas fa-cog"></i>
         </button>
     </header>
@@ -69,9 +74,9 @@
                                 <input type="color" id="gradientColor1" value="#ffb6c1" class="w-full h-10 rounded-lg">
                                 <input type="color" id="gradientColor2" value="#cd4662" class="w-full h-10 rounded-lg">
                             </div>
-                            <div class="flex items-center gap-2">
+                            <div class="slider-container">
                                 <input type="range" id="gradientAngle" min="0" max="360" value="0" class="w-full accent-pink">
-                                <span id="angleValue" class="text-sm font-medium">0°</span>
+                                <span id="angleValue" class="slider-value">0°</span>
                             </div>
                         </div>
                     </div>
@@ -90,17 +95,17 @@
                     </select>
 
                     <div id="patternControls" class="hidden space-y-4">
-                        <div class="flex items-center gap-2">
+                        <div class="slider-container">
                             <i class="fas fa-search-minus text-pink"></i>
                             <input type="range" id="patternSize" min="20" max="200" value="50" class="w-full accent-pink">
                             <i class="fas fa-search-plus text-pink"></i>
-                            <span id="sizeValue" class="text-sm font-medium">50px</span>
+                            <span id="sizeValue" class="slider-value">50px</span>
                         </div>
                         
-                        <div class="flex items-center gap-2">
+                        <div class="slider-container">
                             <i class="fas fa-arrows-alt-h text-pink"></i>
                             <input type="range" id="patternSpacing" min="100" max="200" value="120" class="w-full accent-pink">
-                            <span id="spacingValue" class="text-sm font-medium">120%</span>
+                            <span id="spacingValue" class="slider-value">120%</span>
                         </div>
 
                         <div id="emojiInput" class="hidden">
@@ -167,6 +172,25 @@
         
         .customize-panel::-webkit-scrollbar-thumb:hover {
             background: #CD4662;
+        }
+        
+        /* Add fixed widths for slider containers and value displays */
+        .slider-container {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+        
+        .slider-container input[type="range"] {
+          flex: 1;
+          min-width: 150px;
+        }
+        
+        .slider-value {
+          width: 40px;
+          text-align: right;
+          font-variant-numeric: tabular-nums;
         }
     </style>
 </body>

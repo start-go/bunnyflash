@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PhotoBooth Replica - Capture</title>
+  <!-- Add favicon links -->
+  <link rel="icon" href="assets/images/favicon/icon.png" type="image/png">
+  <link rel="shortcut icon" href="assets/images/favicon/icon.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/images/favicon/icon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -184,11 +188,40 @@
     .shake {
       animation: shakeAnimation 0.5s ease-in-out;
     }
+
+    /* Add fixed widths for slider containers and value displays */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .slider-container input[type="range"] {
+      flex: 1;
+      min-width: 150px;
+    }
+    
+    .slider-value {
+      width: 40px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Keep only spinner animation keyframes */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .animate-spin-custom {
+      animation: spin 1s linear infinite;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-cream font-body">
   <header class="py-4 bg-white shadow-sm">
-    <h1 class="text-2xl font-bold text-center text-pink font-display">PhotoBooth Replica</h1>
+    <h1 class="text-2xl font-bold text-center text-pink font-display">PhotoBooth 🐰⚡</h1>
   </header>
   
   <main class="container mx-auto px-4 py-6 flex flex-col items-center gap-6 max-w-6xl">
@@ -233,18 +266,18 @@
               <i class="fas fa-image"></i><span class="ml-2">Add Overlay</span>
             </button>
             <div id="overlayControls" class="mt-4 hidden">
-              <div class="flex items-center gap-2 mb-2">
+              <div class="slider-container">
                 <i class="fas fa-search-minus"></i>
-                <input type="range" id="scaleSlider" min="10" max="300" value="30" step="5" class="w-full">
+                <input type="range" id="scaleSlider" min="1" max="100" value="30" step="1" class="w-full">
                 <i class="fas fa-search-plus"></i>
-                <span id="scaleValue" class="text-sm">30%</span>
+                <span id="scaleValue" class="slider-value">30%</span>
               </div>
               
-              <div class="flex items-center gap-2 mb-2">
+              <div class="slider-container">
                 <i class="fas fa-undo"></i>
                 <input type="range" id="rotateSlider" min="-180" max="180" value="0" step="5" class="w-full">
                 <i class="fas fa-redo"></i>
-                <span id="rotateValue" class="text-sm">0°</span>
+                <span id="rotateValue" class="slider-value">0°</span>
               </div>
 
               <div class="flex gap-2">
@@ -260,7 +293,7 @@
         </div>
 
         <!-- Mobile Menu Toggle -->
-        <button class="mobile-menu-toggle md:hidden fixed right-0 top-1/2 -translate-y-1/2 bg-sage text-white p-3 rounded-l-lg shadow-lg z-50 hover:bg-pink transition-colors">
+        <button class="mobile-menu-toggle md:hidden fixed right-0 bottom-1 -translate-y-1/2 bg-sage text-white p-3 rounded-l-lg shadow-lg z-50 hover:bg-pink transition-colors">
           <i class="fas fa-cog"></i>
         </button>
 
@@ -287,20 +320,20 @@
             </button>
             
             <div id="overlayControls-mobile" class="hidden space-y-4">
-              <div class="flex items-center gap-2">
+              <div class="slider-container">
                 <i class="fas fa-search-minus text-pink"></i>
-                <input type="range" id="scaleSlider-mobile" min="10" max="300" value="30" step="5" 
+                <input type="range" id="scaleSlider-mobile" min="1" max="100" value="30" step="1" 
                        class="w-full accent-pink">
                 <i class="fas fa-search-plus text-pink"></i>
-                <span id="scaleValue-mobile" class="text-sm font-medium">30%</span>
+                <span id="scaleValue-mobile" class="slider-value">30%</span>
               </div>
               
-              <div class="flex items-center gap-2">
+              <div class="slider-container">
                 <i class="fas fa-undo text-pink"></i>
                 <input type="range" id="rotateSlider-mobile" min="-180" max="180" value="0" step="5"
                        class="w-full accent-pink">
                 <i class="fas fa-redo text-pink"></i>
-                <span id="rotateValue-mobile" class="text-sm font-medium">0°</span>
+                <span id="rotateValue-mobile" class="slider-value">0°</span>
               </div>
 
               <div class="flex gap-2">
@@ -331,13 +364,14 @@
             <i class="fas fa-redo"></i><span class="ml-2">Retake</span>
           </button>
         </div>
-        <button id="nextButton" class="px-6 py-3 bg-pink text-white rounded-lg shadow hover:bg-sage transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-display font-bold" disabled>
-          <i class="fas fa-arrow-right"></i><span class="ml-2">Continue to Photo Strip</span>
-        </button>
-        <!-- Add photo counter -->
-        <div class="photo-counter">
-          <i class="fas fa-images text-sage"></i>
-          <span><span id="photoCount" class="count">0</span>/<span id="maxPhotos">5</span></span>
+        <div class="flex gap-4 items-center">
+          <div class="photo-counter">
+            <i class="fas fa-images text-sage"></i>
+            <span><span id="photoCount" class="count">0</span>/<span id="maxPhotos">5</span></span>
+          </div>
+          <button id="nextButton" class="px-6 py-3 bg-pink text-white rounded-lg shadow hover:bg-sage transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-display font-bold" disabled>
+            <i class="fas fa-arrow-right"></i><span class="ml-2">Continue to Photo Strip</span>
+          </button>
         </div>
       </div>
     </div>
@@ -384,6 +418,12 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Loading Overlay for Background Processing - Using Tailwind -->
+  <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/70 flex flex-col items-center justify-center z-[1000]">
+    <div class="w-12 h-12 border-4 border-white border-t-pink rounded-full animate-spin-custom mb-5"></div>
+    <div id="loadingStatus" class="text-white text-lg font-bold">Processing...</div>
   </div>
 
   <canvas id="hiddenCanvas" class="hidden"></canvas>
