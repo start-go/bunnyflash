@@ -56,6 +56,18 @@
             <div class="customize-content space-y-6">
                 <h3 class="text-xl font-bold text-pink font-display">Customize your photo strip</h3>
                 
+                <!-- Add Resolution Control before the existing controls -->
+                <div class="space-y-4">
+                    <label class="font-display font-bold text-gray-700">Photo Quality:</label>
+                    <select id="resolutionSelect" class="w-full p-2 border-2 border-sage rounded-lg bg-white shadow-sm hover:border-pink focus:border-pink focus:ring-1 focus:ring-pink">
+                        <option value="1">Standard (400px width)</option>
+                        <option value="2" selected>High (800px width)</option>
+                        <option value="3">Ultra (1200px width)</option>
+                        <option value="4">Maximum (1600px width)</option>
+                    </select>
+                    <p class="text-xs text-gray-500">Higher quality produces larger file sizes. Maximum quality may slow down some devices.</p>
+                </div>
+                
                 <!-- Background Color Controls -->
                 <div class="space-y-4">
                     <label class="font-display font-bold text-gray-700">Background:</label>
@@ -126,12 +138,45 @@
                     <select id="stickerSelect" class="w-full p-2 border-2 border-sage rounded-lg bg-white shadow-sm hover:border-pink focus:border-pink focus:ring-1 focus:ring-pink">
                         <option value="none">No Stickers</option>
                         <option value="fish">Fish</option>
-                        <option value="cute">Cute Stickers</option>
+                        <option value="combined">Mixed Stickers</option>
+                        <option value="pink">Pink Decorations</option>
+                        <option value="redicon">Red Icons</option>
+                        <option value="sea">Sea Theme</option>
+                        <option value="sony">Sony Decorations</option>
+                        <option value="cute">Cute Emojis</option>
+                        <option value="random">Random Mix</option>
                     </select>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Add Footer with Buy Me Coffee Button and Copyright -->
+    <footer class="container mx-auto px-4 py-6 flex flex-col md:flex-row justify-between items-center gap-4 border-t border-gray-200 mt-8">
+        <div class="text-sm text-gray-600">
+            © 2025 <a href="https://github.com/erry-az" target="_blank" rel="noopener" class="text-pink hover:underline">github.com/erry-az</a> • All rights reserved
+        </div>
+        <button id="buyMeCoffeeBtn" class="px-4 py-2 bg-yellow-500 text-white rounded-lg shadow hover:bg-yellow-600 transition-colors font-display font-bold flex items-center gap-2">
+            <i class="fas fa-mug-hot"></i><span>Buy Me a Coffee</span>
+        </button>
+    </footer>
+
+    <!-- Buy Me Coffee QR Code Modal -->
+    <div id="qrCodeModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[100]">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 relative">
+            <button id="closeQrModal" class="absolute top-2 right-2 text-gray-500 hover:text-pink">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div class="flex flex-col gap-4 items-center text-center">
+                <h2 class="text-xl font-bold text-pink font-display">Support My Work</h2>
+                <p class="text-gray-700">If you find this app useful, consider buying me a coffee!</p>
+                <div class="p-2 border-2 border-sage rounded-lg">
+                    <img src="assets/images/qr.png" alt="Buy Me a Coffee QR Code" class="w-48 h-48 object-contain">
+                </div>
+                <p class="text-sm text-gray-500">Scan with your phone camera or payment app</p>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/preview.js"></script>
 
@@ -192,6 +237,43 @@
           text-align: right;
           font-variant-numeric: tabular-nums;
         }
+
+        /* QR Code modal animation */
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #qrCodeModal.flex > div {
+            animation: modalFadeIn 0.3s ease-out;
+        }
     </style>
+
+    <script>
+        // Buy Me Coffee button functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const buyMeCoffeeBtn = document.getElementById('buyMeCoffeeBtn');
+            const qrCodeModal = document.getElementById('qrCodeModal');
+            const closeQrModal = document.getElementById('closeQrModal');
+            
+            buyMeCoffeeBtn.addEventListener('click', function() {
+                qrCodeModal.classList.remove('hidden');
+                qrCodeModal.classList.add('flex');
+            });
+            
+            closeQrModal.addEventListener('click', function() {
+                qrCodeModal.classList.remove('flex');
+                qrCodeModal.classList.add('hidden');
+            });
+            
+            // Close modal when clicking outside
+            qrCodeModal.addEventListener('click', function(e) {
+                if (e.target === qrCodeModal) {
+                    qrCodeModal.classList.remove('flex');
+                    qrCodeModal.classList.add('hidden');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

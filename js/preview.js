@@ -36,6 +36,9 @@ const stickerSelect = document.getElementById("stickerSelect");
 const downloadButton = document.getElementById("downloadButton");
 const backButton = document.getElementById("backButton");
 
+// Add resolution select handler after other DOM elements
+const resolutionSelect = document.getElementById("resolutionSelect");
+
 // Add mobile customize panel toggle
 const customizeToggle = document.getElementById("customizeToggle");
 const customizePanel = document.querySelector(".customize-panel");
@@ -72,20 +75,113 @@ const emojiPatterns = {
 
 // Sticker configuration
 const stickerImages = {
-    fish1: "assets/images/frame/fish/1.png",
-    fish2: "assets/images/frame/fish/2.png",
-    fish3: "assets/images/frame/fish/3.png"
+    fish: {
+        1: "assets/images/frame/fish/1.png",
+        2: "assets/images/frame/fish/2.png",
+        3: "assets/images/frame/fish/3.png"
+    },
+    combined: {
+        // 18 images starting from 1
+        1: "assets/images/frame/combined/1.png",
+        2: "assets/images/frame/combined/2.png",
+        3: "assets/images/frame/combined/3.png",
+        4: "assets/images/frame/combined/4.png",
+        5: "assets/images/frame/combined/5.png",
+        6: "assets/images/frame/combined/6.png",
+        7: "assets/images/frame/combined/7.png",
+        8: "assets/images/frame/combined/8.png",
+        9: "assets/images/frame/combined/9.png",
+        10: "assets/images/frame/combined/10.png",
+        11: "assets/images/frame/combined/11.png",
+        12: "assets/images/frame/combined/12.png",
+        13: "assets/images/frame/combined/13.png",
+        14: "assets/images/frame/combined/14.png",
+        15: "assets/images/frame/combined/15.png",
+        16: "assets/images/frame/combined/16.png",
+        17: "assets/images/frame/combined/17.png",
+        18: "assets/images/frame/combined/18.png"
+    },
+    pink: {
+        // 10 images starting from 0
+        0: "assets/images/frame/pink/0.png",
+        1: "assets/images/frame/pink/1.png",
+        2: "assets/images/frame/pink/2.png",
+        3: "assets/images/frame/pink/3.png",
+        4: "assets/images/frame/pink/4.png",
+        5: "assets/images/frame/pink/5.png",
+        6: "assets/images/frame/pink/6.png",
+        7: "assets/images/frame/pink/7.png",
+        8: "assets/images/frame/pink/8.png",
+        9: "assets/images/frame/pink/9.png"
+    },
+    redicon: {
+        // 8 images starting from 0
+        0: "assets/images/frame/redicon/0.png",
+        1: "assets/images/frame/redicon/1.png",
+        2: "assets/images/frame/redicon/2.png",
+        3: "assets/images/frame/redicon/3.png",
+        4: "assets/images/frame/redicon/4.png",
+        5: "assets/images/frame/redicon/5.png",
+        6: "assets/images/frame/redicon/6.png",
+        7: "assets/images/frame/redicon/7.png"
+    },
+    sea: {
+        // 8 images starting from 0
+        0: "assets/images/frame/sea/0.png",
+        1: "assets/images/frame/sea/1.png",
+        2: "assets/images/frame/sea/2.png",
+        3: "assets/images/frame/sea/3.png",
+        4: "assets/images/frame/sea/4.png",
+        5: "assets/images/frame/sea/5.png",
+        6: "assets/images/frame/sea/6.png",
+        7: "assets/images/frame/sea/7.png"
+    },
+    sony: {
+        // 4 images starting from 1
+        1: "assets/images/frame/sony/1.png",
+        2: "assets/images/frame/sony/2.png",
+        3: "assets/images/frame/sony/3.png",
+        4: "assets/images/frame/sony/4.png"
+    }
 };
 
+// Improved sticker drawing function to handle different types
 function drawSticker(ctx, x, y, type, stickerWidth = 50, stickerHeight = 40) {
-    if (type === "fish") {
-        const img = new Image();
-        img.src = stickerImages.fish1;
-        img.onload = () => ctx.drawImage(img, x, y, stickerWidth, stickerHeight);
-    } else if (type === "cute") {
-        ctx.font = "40px sans-serif";
+    // Get current resolution multiplier
+    const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
+    
+    // Scale position and dimensions for higher resolution
+    // Note: x and y should already be scaled, as they come from the canvas coordinates
+    const scaledWidth = stickerWidth * resolutionMultiplier;
+    const scaledHeight = stickerHeight * resolutionMultiplier;
+    
+    if (type === "cute") {
+        ctx.font = `${40 * resolutionMultiplier}px sans-serif`;
         ctx.textBaseline = "top";
         ctx.fillText("🐱", x, y);
+        return;
+    }
+    
+    // Handle image-based stickers
+    if (stickerImages[type]) {
+        const stickerSet = stickerImages[type];
+        // Randomly select an image from the sticker set
+        const keys = Object.keys(stickerSet);
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+        const imgSrc = stickerSet[randomKey];
+        
+        const img = new Image();
+        img.src = imgSrc;
+        img.onload = () => {
+            // Maintain aspect ratio if height is provided
+            if (scaledHeight) {
+                const aspectRatio = img.width / img.height;
+                const calculatedWidth = scaledHeight * aspectRatio;
+                ctx.drawImage(img, x, y, calculatedWidth, scaledHeight);
+            } else {
+                ctx.drawImage(img, x, y, scaledWidth, scaledWidth);
+            }
+        };
     }
 }
 
@@ -95,23 +191,123 @@ const frames = {
     },
     fish: {
         draw: (ctx, x, y, width, height) => {
+            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
+            // Define positions as fractions or percentages of the image dimensions
+            // This ensures consistent placement regardless of resolution
             const positions = [
-                [11, 5], [-18, 95], [width - 160, 10], [width - 1, 50],
-                [120, height - 20], [20, height - 20], [width - 125, height - 5],
-                [width - 10, height - 45]
+                [x + 11 * resolutionMultiplier, y + 5 * resolutionMultiplier], 
+                [x - 18 * resolutionMultiplier, y + 95 * resolutionMultiplier], 
+                [x + width - 160 * resolutionMultiplier, y + 10 * resolutionMultiplier], 
+                [x + width - 1 * resolutionMultiplier, y + 50 * resolutionMultiplier],
+                [x + 120 * resolutionMultiplier, y + height - 20 * resolutionMultiplier], 
+                [x + 20 * resolutionMultiplier, y + height - 20 * resolutionMultiplier], 
+                [x + width - 125 * resolutionMultiplier, y + height - 5 * resolutionMultiplier],
+                [x + width - 10 * resolutionMultiplier, y + height - 45 * resolutionMultiplier]
             ];
-            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'fish'));
+            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'fish'));
+        }
+    },
+    combined: {
+        draw: (ctx, x, y, width, height) => {
+            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
+            const positions = [
+                [x + 15 * resolutionMultiplier, y - 10 * resolutionMultiplier], 
+                [x + width - 70 * resolutionMultiplier, y - 5 * resolutionMultiplier], 
+                [x + width/2 - 30 * resolutionMultiplier, y - 20 * resolutionMultiplier],
+                [x + 10 * resolutionMultiplier, y + height - 40 * resolutionMultiplier], 
+                [x + width - 60 * resolutionMultiplier, y + height - 45 * resolutionMultiplier], 
+                [x + width/2 - 15 * resolutionMultiplier, y + height - 25 * resolutionMultiplier],
+                [x - 15 * resolutionMultiplier, y + height/2], 
+                [x + width - 15 * resolutionMultiplier, y + height/2 - 30 * resolutionMultiplier]
+            ];
+            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'combined', 65, 65));
+        }
+    },
+    pink: {
+        draw: (ctx, x, y, width, height) => {
+            const positions = [
+                [5, 5], [width - 45, 8], [width/3, -10], [2*width/3, -5],
+                [8, height - 35], [width - 40, height - 30], [width/2, height - 20]
+            ];
+            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'pink', 40, 40));
+        }
+    },
+    redicon: {
+        draw: (ctx, x, y, width, height) => {
+            const positions = [
+                [10, 10], [width - 50, 5], [width/2 - 20, -5],
+                [20, height - 30], [width - 55, height - 25], [width/2 + 10, height - 15],
+                [-10, height/3], [width + 5, 2*height/3]
+            ];
+            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'redicon', 45, 45));
+        }
+    },
+    sea: {
+        draw: (ctx, x, y, width, height) => {
+            const positions = [];
+            // Create a wavy pattern along the edges
+            for (let i = 0; i < 4; i++) {
+                positions.push([i * width/3, -5 - Math.sin(i) * 10]);
+                positions.push([i * width/3, height - 25 + Math.sin(i) * 10]);
+            }
+            // Add some on the sides
+            positions.push([-15, height/3]);
+            positions.push([-10, 2*height/3]);
+            positions.push([width - 15, height/4]);
+            positions.push([width - 10, 3*height/4]);
+            
+            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'sea', 50, 40));
+        }
+    },
+    sony: {
+        draw: (ctx, x, y, width, height) => {
+            const positions = [
+                [width/2 - 100, -15], [width/2 + 40, -12],
+                [10, height/2], [width - 50, height/2],
+                [width/2 - 70, height - 25], [width/2 + 30, height - 30]
+            ];
+            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'sony', 60, 50));
         }
     },
     cute: {
         draw: (ctx, x, y, width, height) => {
-            const emojis = [
-                ["🐱", 20, 10], ["🐶", width - 50, 20],
-                ["🐰", 20, height - 40], ["🐻", width - 50, height - 40]
-            ];
-            ctx.font = "30px sans-serif";
+            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
+            ctx.font = `${30 * resolutionMultiplier}px sans-serif`;
             ctx.textBaseline = "top";
-            emojis.forEach(([emoji, px, py]) => ctx.fillText(emoji, x + px, y + py));
+            
+            const emojis = [
+                ["🐱", x + 20 * resolutionMultiplier, y + 10 * resolutionMultiplier], 
+                ["🐶", x + width - 50 * resolutionMultiplier, y + 20 * resolutionMultiplier],
+                ["🐰", x + 20 * resolutionMultiplier, y + height - 40 * resolutionMultiplier], 
+                ["🐻", x + width - 50 * resolutionMultiplier, y + height - 40 * resolutionMultiplier]
+            ];
+            
+            emojis.forEach(([emoji, px, py]) => ctx.fillText(emoji, px, py));
+        }
+    },
+    random: {
+        draw: (ctx, x, y, width, height) => {
+            // Choose a random sticker type excluding 'none', 'cute', and 'random'
+            const stickerTypes = Object.keys(stickerImages);
+            const randomType = stickerTypes[Math.floor(Math.random() * stickerTypes.length)];
+            
+            // Generate random positions
+            const positions = [];
+            for (let i = 0; i < 8; i++) {
+                const px = Math.random() * width;
+                const py = (i < 4) 
+                    ? -10 - Math.random() * 20 // Top area
+                    : height + Math.random() * 10; // Bottom area
+                positions.push([px, py]);
+            }
+            
+            // Add some on the sides
+            for (let i = 0; i < 4; i++) {
+                positions.push([-20, Math.random() * height]); // Left
+                positions.push([width + 5, Math.random() * height]); // Right
+            }
+            
+            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, randomType, 50, 40));
         }
     }
 };
@@ -152,21 +348,56 @@ function preloadImages() {
 
 // Split the photo strip generation into layers for smoother updates
 async function generatePhotoStrip(redrawBackground = true) {
-    const imgWidth = 400;
-    const imgHeight = 300;
-    const borderSize = 40;
-    const photoSpacing = 20;
-    const textHeight = 50;
+    // Get resolution multiplier from the selector
+    const resolutionMultiplier = parseInt(resolutionSelect.value) || 2;
+    
+    // Base dimensions (at 1x resolution)
+    const baseImgWidth = 400;
+    const baseImgHeight = 300;
+    const baseBorderSize = 40;
+    const basePhotoSpacing = 20;
+    const baseTextHeight = 50;
+    
+    // Apply resolution multiplier to dimensions
+    const imgWidth = baseImgWidth * resolutionMultiplier;
+    const imgHeight = baseImgHeight * resolutionMultiplier;
+    const borderSize = baseBorderSize * resolutionMultiplier;
+    const photoSpacing = basePhotoSpacing * resolutionMultiplier;
+    const textHeight = baseTextHeight * resolutionMultiplier;
     const numPhotos = capturedImages.length;
     const totalHeight = (imgHeight * numPhotos) + (photoSpacing * (numPhotos - 1)) + (borderSize * 2) + textHeight;
-
+    
+    // Set canvas display size (visual size) vs actual resolution
+    const canvasWidth = imgWidth + borderSize * 2;
+    const canvasHeight = totalHeight;
+    
     // Only resize canvas when necessary
-    if (canvas.width !== imgWidth + borderSize * 2 || canvas.height !== totalHeight) {
-        canvas.width = imgWidth + borderSize * 2;
-        canvas.height = totalHeight;
+    if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+        // Set the actual resolution (higher)
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Calculate display dimensions to maintain proper aspect ratio
+        const container = document.querySelector('.preview-section');
+        const containerWidth = container.clientWidth;
+        
+        // Calculate display width based on container constraints
+        const displayWidth = Math.min(containerWidth, baseImgWidth + (baseBorderSize * 2));
+        
+        // Calculate display height to maintain aspect ratio
+        const aspectRatio = canvasHeight / canvasWidth;
+        const displayHeight = displayWidth * aspectRatio;
+        
+        // Set the display size while maintaining aspect ratio
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+        
         // Force full redraw when canvas size changes
         redrawBackground = true;
     }
+
+    // Store the current resolution multiplier as a data attribute for other functions to access
+    canvas.dataset.resolutionMultiplier = resolutionMultiplier;
 
     // Step 1: Draw or update background
     if (redrawBackground) {
@@ -187,13 +418,45 @@ async function generatePhotoStrip(redrawBackground = true) {
         await preloadImages();
     }
 
+    // Always clear the previous photos and redraw them
+    // This ensures no artifacts from previous stickers remain
     preloadedImages.forEach((img, index) => {
         const yOffset = borderSize + (imgHeight + photoSpacing) * index;
+        
+        // Clear the area where the photo will be placed to remove any previous stickers
+        ctx.save();
+        if (!redrawBackground) {
+            // Only need to clear the photo area if not redrawing the entire background
+            ctx.clearRect(borderSize, yOffset, imgWidth, imgHeight);
+            
+            // Redraw the background for this photo area
+            if (backgroundType.value === "gradient") {
+                const gradient = createGradient();
+                ctx.fillStyle = gradient;
+                ctx.fillRect(borderSize, yOffset, imgWidth, imgHeight);
+            } else {
+                ctx.fillStyle = solidColor.value;
+                ctx.fillRect(borderSize, yOffset, imgWidth, imgHeight);
+            }
+            
+            // Reapply pattern only to this area if needed
+            if (patternType.value !== "none") {
+                // This is a simplified version - ideally we'd reapply the exact pattern section
+                ctx.fillStyle = "rgba(255, 255, 255, 0.2)"; // Approximation
+                ctx.fillRect(borderSize, yOffset, imgWidth, imgHeight);
+            }
+        }
+        
+        // Draw the photo
         drawPhoto(img, borderSize, yOffset, imgWidth, imgHeight);
         
+        // Apply the selected sticker frame
         if (frames[selectedFrame]) {
+            // For positioning the stickers correctly, we need to use the original coordinates
+            // but the drawSticker function will handle the scaling based on resolution
             frames[selectedFrame].draw(ctx, borderSize, yOffset, imgWidth, imgHeight);
         }
+        ctx.restore();
     });
 
     // Step 3: Draw copyright and timestamp
@@ -282,20 +545,23 @@ function drawPhoto(img, x, y, targetWidth, targetHeight) {
 
 // Update createEmojiPattern function to handle transparency correctly
 function createEmojiPattern(emoji, size, spacing = 1.2) {
+    const resolutionMultiplier = parseInt(resolutionSelect.value) || 2;
+    const scaledSize = size * resolutionMultiplier;
+    
     const canvas = document.createElement('canvas');
-    const patternSize = size * spacing;
+    const patternSize = scaledSize * spacing;
     canvas.width = patternSize;
     canvas.height = patternSize;
-    const ctx = canvas.getContext('2d');
+    const patternCtx = canvas.getContext('2d');
 
     // Clear background (make it transparent)
-    ctx.clearRect(0, 0, patternSize, patternSize);
+    patternCtx.clearRect(0, 0, patternSize, patternSize);
 
     // Draw emoji
-    ctx.font = `${size}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(emoji, patternSize/2, patternSize/2);
+    patternCtx.font = `${scaledSize}px Arial`;
+    patternCtx.textAlign = 'center';
+    patternCtx.textBaseline = 'middle';
+    patternCtx.fillText(emoji, patternSize/2, patternSize/2);
 
     return canvas;
 }
@@ -339,25 +605,19 @@ function createGradient() {
     return gradient;
 }
 
+// Update drawTimestampAndCopyright to include GitHub attribution
 function drawTimestampAndCopyright() {
-    const now = new Date();
-    // const timestamp = now.toLocaleDateString('en-US', {
-    //     month: '2-digit',
-    //     day: '2-digit',
-    //     year: 'numeric'
-    // }) + '  ' + now.toLocaleTimeString('en-US', {
-    //     hour: '2-digit',
-    //     minute: '2-digit',
-    //     hour12: true
-    // });
+    const resolutionMultiplier = parseInt(resolutionSelect.value) || 2;
     
     ctx.fillStyle = "#000000";
-    ctx.font = "30pt Nunito";
+    ctx.font = `${30 * resolutionMultiplier}pt Nunito`;
     ctx.textAlign = "center";
-    ctx.fillText("🐰⚡", canvas.width / 2, canvas.height - 30);
+    ctx.fillText("🐰⚡", canvas.width / 2, canvas.height - 30 * resolutionMultiplier);
+    
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    ctx.font = "12pt Nunito";
-    ctx.fillText("© 2025", canvas.width - 40, canvas.height - 20);
+    ctx.font = `${12 * resolutionMultiplier}pt Nunito`;
+    ctx.textAlign = "right";
+    ctx.fillText("© 2025", canvas.width - 40 * resolutionMultiplier, canvas.height - 20 * resolutionMultiplier);
 }
 
 // Update canvas size handling
@@ -367,7 +627,32 @@ function updateCanvasSize() {
     const containerHeight = container.clientHeight;
     
     // Calculate appropriate canvas size while maintaining aspect ratio
-    // ...add your canvas resize logic here if needed
+    const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
+    
+    // Get the actual canvas dimensions (resolution)
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+    
+    // Calculate the aspect ratio
+    const aspectRatio = canvasHeight / canvasWidth;
+    
+    // Determine the maximum width that fits in the container
+    // Leave some padding on the sides
+    const maxWidth = containerWidth * 0.95;
+    
+    // Calculate the display width and height
+    let displayWidth = Math.min(maxWidth, canvasWidth / resolutionMultiplier);
+    let displayHeight = displayWidth * aspectRatio;
+    
+    // If the height is too tall for the container, adjust accordingly
+    if (displayHeight > containerHeight * 0.9) {
+        displayHeight = containerHeight * 0.9;
+        displayWidth = displayHeight / aspectRatio;
+    }
+    
+    // Apply the display size
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
 }
 
 // Add resize handler
@@ -438,14 +723,50 @@ customImage.addEventListener("change", (e) => {
 
 stickerSelect.addEventListener("change", (e) => {
     selectedFrame = e.target.value;
-    generatePhotoStrip(false);  // No need to redraw background
+    // Force a complete redraw to clean up previous stickers
+    generatePhotoStrip(true);
 });
 
+// Add event listener for resolution changes
+resolutionSelect.addEventListener("change", () => {
+    // Update canvas with new resolution
+    generatePhotoStrip(true);
+});
+
+// Update download button to handle potential large image sizes
 downloadButton.addEventListener("click", () => {
-    const link = document.createElement("a");
-    link.download = "photostrip_" + new Date().toISOString().slice(0, 10) + ".png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+    const resolutionMultiplier = parseInt(resolutionSelect.value) || 2;
+    
+    // Calculate maximum safe resolution based on browser/device capabilities
+    const maxSafeResolution = 8000; // Conservative estimate for most browsers
+    
+    // Check if current canvas exceeds safe limits
+    if (canvas.width > maxSafeResolution || canvas.height > maxSafeResolution) {
+        console.warn("Canvas dimensions exceed safe limits, output may be truncated on some devices");
+    }
+    
+    // Show a loading indicator if the resolution is high
+    if (resolutionMultiplier > 2) {
+        downloadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span class="ml-2">Preparing...</span>';
+        downloadButton.disabled = true;
+    }
+    
+    // Use setTimeout to allow UI to update before the intensive toDataURL operation
+    setTimeout(() => {
+        try {
+            const link = document.createElement("a");
+            link.download = "photostrip_" + new Date().toISOString().slice(0, 10) + ".png";
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        } catch (error) {
+            console.error("Error generating image:", error);
+            alert("Unable to generate high-resolution image. Try a lower quality setting.");
+        } finally {
+            // Reset button state
+            downloadButton.innerHTML = '<i class="fas fa-download"></i><span class="ml-2">Download Photo Strip</span>';
+            downloadButton.disabled = false;
+        }
+    }, 100);
 });
 
 backButton.addEventListener("click", () => {
