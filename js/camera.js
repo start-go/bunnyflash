@@ -11,6 +11,31 @@ export async function initializeCamera(state) {
     hiddenCanvas.width = 1920;  // Full HD width
     hiddenCanvas.height = 1440; // 4:3 aspect ratio at full HD
     
+    // Add iOS Safari specific constraints
+    async function getMediaConstraints() {
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        
+        if (isIOS) {
+            return {
+                video: {
+                    facingMode: 'user',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
+        }
+        
+        return {
+            video: {
+                width: { ideal: 3840 },
+                height: { ideal: 2160 },
+                facingMode: 'user'
+            },
+            audio: false
+        };
+    }
+
     function renderWebcam() {
         if (!state.videoElement) return;
 
@@ -121,61 +146,45 @@ export async function initializeCamera(state) {
             state.stream.getTracks().forEach(track => track.stop());
         }
 
-        const constraints = {
-            video: {
-                width: { ideal: 3840 },    // 4K
-                height: { ideal: 2160 },   // 4K
-                deviceId: deviceId ? { exact: deviceId } : undefined
-            },
-            audio: false
-        };
-
         try {
+            // Get iOS-aware constraints
+            const constraints = await getMediaConstraints();
+            if (deviceId) {
+                constraints.video.deviceId = { exact: deviceId };
+            }
+
             state.stream = await navigator.mediaDevices.getUserMedia(constraints);
             state.videoElement = document.createElement('video');
             state.videoElement.srcObject = state.stream;
             state.videoElement.autoplay = true;
-            state.videoElement.playsInline = true;
+            state.videoElement.playsInline = true; // Important for iOS
+            state.videoElement.muted = true; // Important for iOS autoplay
             
-            await new Promise(resolve => {
+            // Wait for video to be ready
+            await new Promise((resolve) => {
                 state.videoElement.onloadedmetadata = () => {
-                    state.videoElement.play();
-                    resolve();
+                    state.videoElement.play().then(resolve).catch(resolve);
                 };
             });
-            
-            // Start the render loop
+
             renderWebcam();
         } catch (err) {
-            console.error('Failed to get 4K stream, falling back to HD:', err);
-            // Fallback to HD if 4K fails
-            try {
-                constraints.video.width = { ideal: 1920 };
-                constraints.video.height = { ideal: 1080 };
-                state.stream = await navigator.mediaDevices.getUserMedia(constraints);
-                state.videoElement = document.createElement('video');
-                state.videoElement.srcObject = state.stream;
-                state.videoElement.autoplay = true;
-                state.videoElement.playsInline = true;
-                
-                await new Promise(resolve => {
-                    state.videoElement.onloadedmetadata = () => {
-                        state.videoElement.play();
-                        resolve();
-                    };
-                });
-                
-                renderWebcam();
-            } catch (fallbackErr) {
-                alert('Error accessing camera: ' + fallbackErr.message);
-            }
+            console.error('Camera error:', err);
+            // Show user-friendly error message
+            alert('Unable to access camera. Please ensure you have granted camera permissions and are using a supported browser.');
         }
     }
 
-    // Initialize
-    await getWebcams();
-    if (webcamSelect.options.length > 0) {
-        await initCamera(webcamSelect.value);
+    // Initialize cameras if available
+    try {
+        await getWebcams();
+        if (webcamSelect.options.length > 0) {
+            await initCamera(webcamSelect.value);
+        }
+    } catch (err) {
+        console.error('Init error:', err);
+        // Show user-friendly error message
+        alert('Camera access is required. Please allow camera access when prompted.');
     }
 
     webcamSelect.addEventListener('change', async () => {

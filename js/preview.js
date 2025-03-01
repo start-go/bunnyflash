@@ -19,6 +19,11 @@ const gradientColor2 = document.getElementById("gradientColor2");
 const gradientAngle = document.getElementById("gradientAngle");
 const angleValue = document.getElementById("angleValue");
 
+// Add new variables after other control declarations
+const imageControls = document.getElementById("imageControls");
+const backgroundImage = document.getElementById("backgroundImage");
+let backgroundImageData = null;
+
 // Pattern controls
 const patternType = document.getElementById("patternType");
 const patternControls = document.getElementById("patternControls");
@@ -135,16 +140,13 @@ const stickerImages = {
         6: "assets/images/frame/sea/6.png",
         7: "assets/images/frame/sea/7.png"
     },
-    sony: {
+    sonny: {
         // 4 images starting from 1
         1: "assets/images/frame/sony/1.png",
         2: "assets/images/frame/sony/2.png",
         3: "assets/images/frame/sony/3.png",
         4: "assets/images/frame/sony/4.png"
     },
-    cute: {
-        // using emoji
-    }
 };
 
 const availableStickers = Object.keys(stickerImages);
@@ -313,12 +315,15 @@ async function generatePhotoStrip(redrawBackground = true) {
 
     // Step 1: Draw or update background
     if (redrawBackground) {
-        if (backgroundType.value === "gradient") {
+        if (backgroundType.value === "image" && backgroundImageData) {
+            await drawBackgroundImage();
+        } else if (backgroundType.value === "gradient") {
             ctx.fillStyle = createGradient();
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         } else {
             ctx.fillStyle = solidColor.value;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         // Apply pattern overlay if needed
         await drawPatternIfNeeded();
@@ -377,14 +382,47 @@ async function generatePhotoStrip(redrawBackground = true) {
     return true;
 }
 
+// Add new function to draw background image
+async function drawBackgroundImage() {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvasAspect = canvas.width / canvas.height;
+            const imgAspect = img.width / img.height;
+            let drawWidth = canvas.width;
+            let drawHeight = canvas.height;
+            let offsetX = 0;
+            let offsetY = 0;
+
+            // Calculate dimensions to cover canvas while maintaining aspect ratio
+            if (canvasAspect > imgAspect) {
+                drawHeight = drawWidth / imgAspect;
+                offsetY = (canvas.height - drawHeight) / 2;
+            } else {
+                drawWidth = drawHeight * imgAspect;
+                offsetX = (canvas.width - drawWidth) / 2;
+            }
+
+            // Draw background color first in case image has transparency
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw image
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            resolve();
+        };
+        img.src = backgroundImageData;
+    });
+}
+
 function drawBorderStickers(borderSize, imgWidth, imgHeight, yOffset, resolutionMultiplier, photoIndex) {
     if (!selectedSticker) {
-        // Clear stored frame images if no sticker is selected
         selectedFrameImages.clear();
         return;
     }
 
-    const stickerSize = borderSize / 2; // Base sticker size
+    // Increase base sticker size by 25%
+    const stickerSize = (borderSize / 2) * 2; // Changed from borderSize / 2
     const margin = 2 * resolutionMultiplier; // Reduced margin (was 5)
     const spacing = stickerSize * 1.1; // Reduced spacing (was 1.2)
     
@@ -417,8 +455,8 @@ function drawBorderStickers(borderSize, imgWidth, imgHeight, yOffset, resolution
         addSticker(photoRight + margin, y, selectedSticker, stickerSize, photoIndex);
     }
     
-    // Add corner stickers with slightly larger size for emphasis
-    const cornerSize = stickerSize * 1.2;
+    // Increase corner stickers by 30% instead of 20%
+    const cornerSize = stickerSize * 1.8; // Changed from 1.2
     // Top-left corner
     addSticker(photoLeft, photoTop, selectedSticker, cornerSize, photoIndex);
     // Top-right corner
@@ -631,40 +669,45 @@ function drawTimestampAndCopyright() {
     ctx.fillText("© 2025", canvas.width - 40 * resolutionMultiplier, canvas.height - 20 * resolutionMultiplier);
 }
 
-// Update canvas size handling
+// Update updateCanvasSize function to be more stable
 function updateCanvasSize() {
     const container = document.querySelector('.preview-section');
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
+    const containerWidth = container.getBoundingClientRect().width;
     
-    // Calculate appropriate canvas size while maintaining aspect ratio
-    const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
+    // Store the current canvas dimensions to avoid unnecessary updates
+    const currentWidth = parseFloat(canvas.style.width) || 0;
+    const aspectRatio = canvas.height / canvas.width;
     
-    // Get the actual canvas dimensions (resolution)
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
+    // Calculate new width (95% of container, max 800px)
+    const displayWidth = Math.min(containerWidth * 0.95, 800);
+    const displayHeight = displayWidth * aspectRatio;
     
-    // Calculate the aspect ratio
-    const aspectRatio = canvasHeight / canvasWidth;
-    
-    // Determine the maximum width that fits in the container
-    // Leave some padding on the sides
-    const maxWidth = containerWidth * 0.95;
-    
-    // Calculate the display width and height
-    let displayWidth = Math.min(maxWidth, canvasWidth / resolutionMultiplier);
-    let displayHeight = displayWidth * aspectRatio;
-    
-    // If the height is too tall for the container, adjust accordingly
-    if (displayHeight > containerHeight * 0.9) {
-        displayHeight = containerHeight * 0.9;
-        displayWidth = displayHeight / aspectRatio;
+    // Only update if dimensions changed by more than 1px
+    if (Math.abs(currentWidth - displayWidth) > 1) {
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
     }
-    
-    // Apply the display size
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
 }
+
+// Replace window resize and scroll handlers
+const debouncedUpdateCanvas = debounce(() => {
+    updateCanvasSize();
+}, 100);
+
+window.removeEventListener('resize', updateCanvasSize);
+window.addEventListener('resize', debouncedUpdateCanvas, { passive: true });
+
+// Prevent canvas updates during scroll
+let ticking = false;
+window.addEventListener('scroll', () => {
+    if (!ticking) {
+        window.requestAnimationFrame(() => {
+            updateCanvasSize();
+            ticking = false;
+        });
+        ticking = true;
+    }
+}, { passive: true });
 
 // Add resize handler
 window.addEventListener('resize', () => {
@@ -692,6 +735,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 backgroundType.addEventListener("change", (e) => {
     solidControls.style.display = e.target.value === "solid" ? "block" : "none";
     gradientControls.style.display = e.target.value === "gradient" ? "block" : "none";
+    imageControls.style.display = e.target.value === "image" ? "block" : "none";
     generatePhotoStrip(true);
 });
 
@@ -726,6 +770,19 @@ customImage.addEventListener("change", (e) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             customImageData = e.target.result;
+            generatePhotoStrip(true);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Add background image handler
+backgroundImage.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            backgroundImageData = e.target.result;
             generatePhotoStrip(true);
         };
         reader.readAsDataURL(file);
