@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>BunnyFlash</title>
+    <title>BunnyPix</title>
     <!-- Add favicon links -->
     <link rel="icon" href="assets/images/favicon/icon.png" type="image/png">
     <link rel="shortcut icon" href="assets/images/favicon/icon.png" type="image/png">
@@ -11,6 +11,7 @@
     <!-- Existing CSS links -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -25,6 +26,7 @@
                     fontFamily: {
                         display: ['Quicksand', 'sans-serif'],
                         body: ['Nunito', 'sans-serif'],
+                        header: ['Press Start 2P', 'sans-serif'],
                     },
                 },
             },
@@ -33,7 +35,7 @@
 </head>
 <body class="min-h-screen bg-cream font-body">
     <header class="py-4 bg-white shadow-sm">
-        <h1 class="text-2xl font-bold text-center text-pink font-display">PhotoStrip 🐰⚡</h1>
+        <h1 class="text-2xl font-bold text-center text-pink font-header">BunnyPix - PhotoStrip</h1>
         <button id="customizeToggle" class="md:hidden fixed right-0 bottom-1 -translate-y-1/2 bg-sage text-white p-3 rounded-l-lg shadow-lg z-50 hover:bg-pink transition-colors">
             <i class="fas fa-cog"></i>
         </button>
@@ -246,6 +248,11 @@
 
         #qrCodeModal.flex > div {
             animation: modalFadeIn 0.3s ease-out;
+        }
+
+        /* Apply font-family to header */
+        h1 {
+          font-family: 'Press Start 2P', monospace;
         }
     </style>
 

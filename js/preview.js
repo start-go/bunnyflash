@@ -151,7 +151,6 @@ function drawSticker(ctx, x, y, type, stickerWidth = 50, stickerHeight = 40) {
     const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
     
     // Scale position and dimensions for higher resolution
-    // Note: x and y should already be scaled, as they come from the canvas coordinates
     const scaledWidth = stickerWidth * resolutionMultiplier;
     const scaledHeight = stickerHeight * resolutionMultiplier;
     
@@ -225,48 +224,65 @@ const frames = {
     },
     pink: {
         draw: (ctx, x, y, width, height) => {
+            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
             const positions = [
-                [5, 5], [width - 45, 8], [width/3, -10], [2*width/3, -5],
-                [8, height - 35], [width - 40, height - 30], [width/2, height - 20]
+                [5 * resolutionMultiplier, 5 * resolutionMultiplier], 
+                [width - 45 * resolutionMultiplier, 8 * resolutionMultiplier], 
+                [width/3 * resolutionMultiplier, -10 * resolutionMultiplier], 
+                [2*width/3 * resolutionMultiplier, -5 * resolutionMultiplier],
+                [8 * resolutionMultiplier, height - 35 * resolutionMultiplier], 
+                [width - 40 * resolutionMultiplier, height - 30 * resolutionMultiplier], 
+                [width/2 * resolutionMultiplier, height - 20 * resolutionMultiplier]
             ];
-            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'pink', 40, 40));
+            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'pink', 40, 40));
         }
     },
     redicon: {
         draw: (ctx, x, y, width, height) => {
+            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
             const positions = [
-                [10, 10], [width - 50, 5], [width/2 - 20, -5],
-                [20, height - 30], [width - 55, height - 25], [width/2 + 10, height - 15],
-                [-10, height/3], [width + 5, 2*height/3]
+                [10 * resolutionMultiplier, 10 * resolutionMultiplier], 
+                [width - 50 * resolutionMultiplier, 5 * resolutionMultiplier], 
+                [width/2 - 20 * resolutionMultiplier, -5 * resolutionMultiplier],
+                [20 * resolutionMultiplier, height - 30 * resolutionMultiplier], 
+                [width - 55 * resolutionMultiplier, height - 25 * resolutionMultiplier], 
+                [width/2 + 10 * resolutionMultiplier, height - 15 * resolutionMultiplier],
+                [-10 * resolutionMultiplier, height/3 * resolutionMultiplier], 
+                [width + 5 * resolutionMultiplier, 2*height/3 * resolutionMultiplier]
             ];
-            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'redicon', 45, 45));
+            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'redicon', 45, 45));
         }
     },
     sea: {
         draw: (ctx, x, y, width, height) => {
+            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
             const positions = [];
             // Create a wavy pattern along the edges
             for (let i = 0; i < 4; i++) {
-                positions.push([i * width/3, -5 - Math.sin(i) * 10]);
-                positions.push([i * width/3, height - 25 + Math.sin(i) * 10]);
+                positions.push([i * width/3 * resolutionMultiplier, -5 * resolutionMultiplier - Math.sin(i) * 10 * resolutionMultiplier]);
+                positions.push([i * width/3 * resolutionMultiplier, height - 25 * resolutionMultiplier + Math.sin(i) * 10 * resolutionMultiplier]);
             }
             // Add some on the sides
-            positions.push([-15, height/3]);
-            positions.push([-10, 2*height/3]);
-            positions.push([width - 15, height/4]);
-            positions.push([width - 10, 3*height/4]);
+            positions.push([-15 * resolutionMultiplier, height/3 * resolutionMultiplier]);
+            positions.push([-10 * resolutionMultiplier, 2*height/3 * resolutionMultiplier]);
+            positions.push([width - 15 * resolutionMultiplier, height/4 * resolutionMultiplier]);
+            positions.push([width - 10 * resolutionMultiplier, 3*height/4 * resolutionMultiplier]);
             
-            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'sea', 50, 40));
+            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'sea', 50, 40));
         }
     },
     sony: {
         draw: (ctx, x, y, width, height) => {
+            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
             const positions = [
-                [width/2 - 100, -15], [width/2 + 40, -12],
-                [10, height/2], [width - 50, height/2],
-                [width/2 - 70, height - 25], [width/2 + 30, height - 30]
+                [width/2 - 100 * resolutionMultiplier, -15 * resolutionMultiplier], 
+                [width/2 + 40 * resolutionMultiplier, -12 * resolutionMultiplier],
+                [10 * resolutionMultiplier, height/2 * resolutionMultiplier], 
+                [width - 50 * resolutionMultiplier, height/2 * resolutionMultiplier],
+                [width/2 - 70 * resolutionMultiplier, height - 25 * resolutionMultiplier], 
+                [width/2 + 30 * resolutionMultiplier, height - 30 * resolutionMultiplier]
             ];
-            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, 'sony', 60, 50));
+            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'sony', 60, 50));
         }
     },
     cute: {
@@ -540,6 +556,20 @@ function drawPhoto(img, x, y, targetWidth, targetHeight) {
         sourceY = (img.height - sourceHeight) / 2;
     }
 
+    // Add rounded corners
+    ctx.beginPath();
+    ctx.moveTo(x + 10, y);
+    ctx.lineTo(x + targetWidth - 10, y);
+    ctx.quadraticCurveTo(x + targetWidth, y, x + targetWidth, y + 10);
+    ctx.lineTo(x + targetWidth, y + targetHeight - 10);
+    ctx.quadraticCurveTo(x + targetWidth, y + targetHeight, x + targetWidth - 10, y + targetHeight);
+    ctx.lineTo(x + 10, y + targetHeight);
+    ctx.quadraticCurveTo(x, y + targetHeight, x, y + targetHeight - 10);
+    ctx.lineTo(x, y + 10);
+    ctx.quadraticCurveTo(x, y, x + 10, y);
+    ctx.closePath();
+    ctx.clip();
+
     ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, x, y, targetWidth, targetHeight);
 }
 
@@ -609,13 +639,13 @@ function createGradient() {
 function drawTimestampAndCopyright() {
     const resolutionMultiplier = parseInt(resolutionSelect.value) || 2;
     
-    ctx.fillStyle = "#000000";
-    ctx.font = `${30 * resolutionMultiplier}pt Nunito`;
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.font = `${30 * resolutionMultiplier}pt VT323`;
     ctx.textAlign = "center";
-    ctx.fillText("🐰⚡", canvas.width / 2, canvas.height - 30 * resolutionMultiplier);
+    ctx.fillText("BunnyPix", canvas.width / 2, canvas.height - 30 * resolutionMultiplier);
     
     ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
-    ctx.font = `${12 * resolutionMultiplier}pt Nunito`;
+    ctx.font = `${12 * resolutionMultiplier}pt VT323`;
     ctx.textAlign = "right";
     ctx.fillText("© 2025", canvas.width - 40 * resolutionMultiplier, canvas.height - 20 * resolutionMultiplier);
 }
