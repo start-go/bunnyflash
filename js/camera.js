@@ -2,8 +2,14 @@ import { applyFilter } from './filters.js';
 
 export async function initializeCamera(state) {
     const canvas = document.getElementById('webcam-canvas');
+    const hiddenCanvas = document.getElementById('hiddenCanvas');
     const ctx = canvas.getContext('2d');
+    const hiddenCtx = hiddenCanvas.getContext('2d');
     const container = document.getElementById('webcam-container');
+    
+    // Set hidden canvas to high resolution
+    hiddenCanvas.width = 1920;  // Full HD width
+    hiddenCanvas.height = 1440; // 4:3 aspect ratio at full HD
     
     function renderWebcam() {
         if (!state.videoElement) return;
@@ -12,67 +18,78 @@ export async function initializeCamera(state) {
         const videoWidth = state.videoElement.videoWidth;
         const videoHeight = state.videoElement.videoHeight;
         
-        // Set canvas to a fixed 4:3 aspect ratio, but 30% smaller
-        const containerWidth = container.clientWidth * 0.7; // 70% of original size (30% smaller)
+        // Set display canvas to a fixed 4:3 aspect ratio, but 30% smaller
+        const containerWidth = container.clientWidth * 0.7;
         canvas.width = containerWidth;
-        canvas.height = containerWidth * (3/4); // 4:3 aspect ratio
+        canvas.height = containerWidth * (3/4);
         
-        // Calculate scaling and positioning to maintain aspect ratio with cropping if needed
+        // Calculate scaling and positioning for both canvases
         let drawWidth, drawHeight, drawX = 0, drawY = 0;
         const videoRatio = videoWidth / videoHeight;
-        const canvasRatio = canvas.width / canvas.height; // Will be 4:3
+        const canvasRatio = canvas.width / canvas.height;
         
         if (videoRatio >= canvasRatio) {
-            // Video is wider than 4:3 - crop sides
             drawHeight = videoHeight;
             drawWidth = videoHeight * canvasRatio;
             drawX = (videoWidth - drawWidth) / 2;
         } else {
-            // Video is taller than 4:3 - crop top/bottom
             drawWidth = videoWidth;
             drawHeight = videoWidth / canvasRatio;
             drawY = (videoHeight - drawHeight) / 2;
         }
         
-        // Clear the canvas
+        // Clear both canvases
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hiddenCtx.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
         
-        // Save the current context state
+        // Draw to display canvas
         ctx.save();
-        
-        // Flip the context horizontally if isFlipped is true
         if (state.isFlipped) {
             ctx.scale(-1, 1);
             ctx.translate(-canvas.width, 0);
         }
-        
-        // Draw the video feed with proper cropping to maintain 4:3 aspect ratio
         ctx.drawImage(
-            state.videoElement, 
-            drawX, drawY, drawWidth, drawHeight, // Source crop
-            0, 0, canvas.width, canvas.height    // Destination (full canvas)
+            state.videoElement,
+            drawX, drawY, drawWidth, drawHeight,
+            0, 0, canvas.width, canvas.height
         );
-        
-        // Restore the context state
         ctx.restore();
         
-        // Apply current filter
+        // Draw to hidden canvas (high resolution)
+        hiddenCtx.save();
+        if (state.isFlipped) {
+            hiddenCtx.scale(-1, 1);
+            hiddenCtx.translate(-hiddenCanvas.width, 0);
+        }
+        hiddenCtx.drawImage(
+            state.videoElement,
+            drawX, drawY, drawWidth, drawHeight,
+            0, 0, hiddenCanvas.width, hiddenCanvas.height
+        );
+        hiddenCtx.restore();
+        
+        // Apply current filter to display canvas
         if (state.filter !== 'none') {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             applyFilter(imageData.data, state.filter);
             ctx.putImageData(imageData, 0, 0);
+            
+            // Also apply to hidden canvas
+            const hiddenImageData = hiddenCtx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
+            applyFilter(hiddenImageData.data, state.filter);
+            hiddenCtx.putImageData(hiddenImageData, 0, 0);
         }
         
-        // Draw the overlay if it exists
+        // Draw overlay if exists (on both canvases)
         if (state.overlayImage && state.overlay) {
             try {
                 state.drawOverlay(ctx);
+                state.drawOverlay(hiddenCtx, true); // Pass true to indicate high-res canvas
             } catch (error) {
                 console.error('Error drawing overlay:', error);
             }
         }
         
-        // Request the next frame
         requestAnimationFrame(() => renderWebcam());
     }
 
@@ -106,8 +123,8 @@ export async function initializeCamera(state) {
 
         const constraints = {
             video: {
-                width: { ideal: 1920 },  // Request higher resolution
-                height: { ideal: 1080 },  // for better quality
+                width: { ideal: 3840 },    // 4K
+                height: { ideal: 2160 },   // 4K
                 deviceId: deviceId ? { exact: deviceId } : undefined
             },
             audio: false
@@ -120,7 +137,6 @@ export async function initializeCamera(state) {
             state.videoElement.autoplay = true;
             state.videoElement.playsInline = true;
             
-            // Wait for video to be ready
             await new Promise(resolve => {
                 state.videoElement.onloadedmetadata = () => {
                     state.videoElement.play();
@@ -128,19 +144,31 @@ export async function initializeCamera(state) {
                 };
             });
             
-            // Set initial canvas size based on video dimensions at 70% size
-            const videoWidth = state.videoElement.videoWidth;
-            const videoHeight = state.videoElement.videoHeight;
-            const aspectRatio = videoWidth / videoHeight;
-            const containerWidth = container.clientWidth * 0.7; // 70% of container width
-            
-            canvas.width = containerWidth;
-            canvas.height = containerWidth / aspectRatio;
-            
             // Start the render loop
             renderWebcam();
         } catch (err) {
-            alert('Error accessing camera: ' + err.message);
+            console.error('Failed to get 4K stream, falling back to HD:', err);
+            // Fallback to HD if 4K fails
+            try {
+                constraints.video.width = { ideal: 1920 };
+                constraints.video.height = { ideal: 1080 };
+                state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+                state.videoElement = document.createElement('video');
+                state.videoElement.srcObject = state.stream;
+                state.videoElement.autoplay = true;
+                state.videoElement.playsInline = true;
+                
+                await new Promise(resolve => {
+                    state.videoElement.onloadedmetadata = () => {
+                        state.videoElement.play();
+                        resolve();
+                    };
+                });
+                
+                renderWebcam();
+            } catch (fallbackErr) {
+                alert('Error accessing camera: ' + fallbackErr.message);
+            }
         }
     }
 

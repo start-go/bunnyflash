@@ -108,3 +108,9 @@ function createThumbnail(photoData, index) {
     img.addEventListener('click', () => window.showPreview(index));
     return img;
 }
+
+export function capturePhoto(state) {
+    const hiddenCanvas = document.getElementById('hiddenCanvas');
+    // Use the high-resolution canvas for the actual photo
+    return hiddenCanvas.toDataURL('image/jpeg', 0.95);
+}
