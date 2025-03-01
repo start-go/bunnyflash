@@ -310,15 +310,19 @@ function updateUI(state, elements) {
     elements.toggleOverlay.innerHTML = buttonHtml;
     elements.toggleOverlayMobile.innerHTML = buttonHtml;
 
-    elements.scaleSlider.value = state.overlay.controls.scale;
-    elements.scaleSliderMobile.value = state.overlay.controls.scale;
-    elements.scaleValue.textContent = `${state.overlay.controls.scale}%`;
-    elements.scaleValueMobile.textContent = `${state.overlay.controls.scale}%`;
+    // Ensure both desktop and mobile sliders are in sync
+    const scaleValue = state.overlay.controls.scale;
+    elements.scaleSlider.value = scaleValue;
+    elements.scaleSliderMobile.value = scaleValue;
+    elements.scaleValue.textContent = `${scaleValue}%`;
+    elements.scaleValueMobile.textContent = `${scaleValue}%`;
 
-    elements.rotateSlider.value = state.overlay.controls.rotation;
-    elements.rotateSliderMobile.value = state.overlay.controls.rotation;
-    elements.rotateValue.textContent = `${state.overlay.controls.rotation}°`;
-    elements.rotateValueMobile.textContent = `${state.overlay.controls.rotation}°`;
+    // Ensure both desktop and mobile rotation sliders are in sync
+    const rotationValue = state.overlay.controls.rotation;
+    elements.rotateSlider.value = rotationValue;
+    elements.rotateSliderMobile.value = rotationValue;
+    elements.rotateValue.textContent = `${rotationValue}°`;
+    elements.rotateValueMobile.textContent = `${rotationValue}°`;
 }
 
 export async function initializeOverlay(state) {
@@ -371,47 +375,71 @@ export async function initializeOverlay(state) {
 
     // Setup drag handlers
     function setupDragHandlers() {
+        function getCanvasCoordinates(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            // Handle both mouse and touch events
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
         function handleDragStart(e) {
             if (!state.overlayImage) return;
-            const rect = elements.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            if (x >= state.overlay.x && 
-                x <= state.overlay.x + (state.overlay.width * state.overlay.scale) &&
-                y >= state.overlay.y &&
-                y <= state.overlay.y + (state.overlay.height * state.overlay.scale)) {
+            
+            const coords = getCanvasCoordinates(e, elements.canvas);
+            const scaledWidth = state.overlay.width * state.overlay.scale;
+            const scaledHeight = state.overlay.height * state.overlay.scale;
+            
+            // Check if the click/touch is within the overlay bounds
+            if (coords.x >= state.overlay.x && 
+                coords.x <= state.overlay.x + scaledWidth &&
+                coords.y >= state.overlay.y &&
+                coords.y <= state.overlay.y + scaledHeight) {
                 
                 state.overlay.isDragging = true;
-                state.overlay.dragStartX = x;
-                state.overlay.dragStartY = y;
+                state.overlay.dragStartX = coords.x;
+                state.overlay.dragStartY = coords.y;
                 state.overlay.originalX = state.overlay.x;
                 state.overlay.originalY = state.overlay.y;
-                elements.canvas.classList.add('dragging');
+                elements.canvas.style.cursor = 'grabbing';
             }
         }
 
         function handleDrag(e) {
             if (!state.overlayImage || !state.overlay.isDragging) return;
-            const rect = elements.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const dx = x - state.overlay.dragStartX;
-            const dy = y - state.overlay.dragStartY;
+            
+            const coords = getCanvasCoordinates(e, elements.canvas);
+            const dx = coords.x - state.overlay.dragStartX;
+            const dy = coords.y - state.overlay.dragStartY;
+            const scaledWidth = state.overlay.width * state.overlay.scale;
+            const scaledHeight = state.overlay.height * state.overlay.scale;
 
+            // Update position with bounds checking
             state.overlay.x = Math.max(0, Math.min(
-                elements.canvas.width - state.overlay.width * state.overlay.scale,
+                elements.canvas.width - scaledWidth,
                 state.overlay.originalX + dx
             ));
             state.overlay.y = Math.max(0, Math.min(
-                elements.canvas.height - state.overlay.height * state.overlay.scale,
+                elements.canvas.height - scaledHeight,
                 state.overlay.originalY + dy
             ));
+            
+            // Prevent default to avoid scrolling while dragging on mobile
+            e.preventDefault();
         }
 
         function handleDragEnd() {
-            state.overlay.isDragging = false;
-            elements.canvas.classList.remove('dragging');
+            if (state.overlay.isDragging) {
+                state.overlay.isDragging = false;
+                elements.canvas.style.cursor = 'grab';
+            }
         }
 
         // Mouse events
@@ -421,17 +449,21 @@ export async function initializeOverlay(state) {
         elements.canvas.addEventListener('mouseleave', handleDragEnd);
 
         // Touch events
-        elements.canvas.addEventListener('touchstart', e => {
-            e.preventDefault();
-            handleDragStart({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
-        });
-
-        elements.canvas.addEventListener('touchmove', e => {
-            e.preventDefault();
-            handleDrag({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
-        });
-
+        elements.canvas.addEventListener('touchstart', handleDragStart, { passive: false });
+        elements.canvas.addEventListener('touchmove', handleDrag, { passive: false });
         elements.canvas.addEventListener('touchend', handleDragEnd);
+        elements.canvas.addEventListener('touchcancel', handleDragEnd);
+
+        // Add cursor styles
+        elements.canvas.addEventListener('mouseover', () => {
+            if (state.overlayImage) {
+                elements.canvas.style.cursor = 'grab';
+            }
+        });
+        
+        elements.canvas.addEventListener('mouseout', () => {
+            elements.canvas.style.cursor = 'default';
+        });
     }
 
     // Setup event handlers
@@ -511,27 +543,27 @@ export async function initializeOverlay(state) {
     elements.toggleOverlay.addEventListener('click', handleOverlayToggle);
     elements.toggleOverlayMobile.addEventListener('click', handleOverlayToggle);
 
-    elements.scaleSlider.addEventListener('input', e => {
-        state.overlay.controls.scale = parseInt(e.target.value);
-        state.overlay.scale = state.overlay.controls.scale / 100;
+    // Update scale slider event listeners
+    function handleScaleChange(e) {
+        const newScale = parseInt(e.target.value);
+        state.overlay.controls.scale = newScale;
+        state.overlay.scale = newScale / 100;
         updateUI(state, elements);
-    });
-    elements.scaleSliderMobile.addEventListener('input', e => {
-        state.overlay.controls.scale = parseInt(e.target.value);
-        state.overlay.scale = state.overlay.controls.scale / 100;
-        updateUI(state, elements);
-    });
+    }
 
-    elements.rotateSlider.addEventListener('input', e => {
-        state.overlay.controls.rotation = parseInt(e.target.value);
-        state.overlay.rotation = state.overlay.controls.rotation;
+    elements.scaleSlider.addEventListener('input', handleScaleChange);
+    elements.scaleSliderMobile.addEventListener('input', handleScaleChange);
+
+    // Update rotation slider event listeners
+    function handleRotationChange(e) {
+        const newRotation = parseInt(e.target.value);
+        state.overlay.controls.rotation = newRotation;
+        state.overlay.rotation = newRotation;
         updateUI(state, elements);
-    });
-    elements.rotateSliderMobile.addEventListener('input', e => {
-        state.overlay.controls.rotation = parseInt(e.target.value);
-        state.overlay.rotation = state.overlay.controls.rotation;
-        updateUI(state, elements);
-    });
+    }
+
+    elements.rotateSlider.addEventListener('input', handleRotationChange);
+    elements.rotateSliderMobile.addEventListener('input', handleRotationChange);
 
     elements.fitButton.addEventListener('click', () => fitImageToFrame(state, elements));
     elements.fitButtonMobile.addEventListener('click', () => fitImageToFrame(state, elements));
