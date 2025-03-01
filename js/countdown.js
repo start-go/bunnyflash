@@ -1,3 +1,5 @@
+import { updateThumbnails, updateButtons } from './utils.js';
+
 export function initializeCountdown(state) {
     const countdownElement = document.getElementById('countdown');
     const countdownText = countdownElement.querySelector('span');
@@ -9,7 +11,8 @@ export function initializeCountdown(state) {
     // Initialize countdown state
     state.isCountingDown = false;
     
-    // Set max photos in the UI
+    // Update max photos to 4
+    state.maxPhotos = 4;
     maxPhotosElement.textContent = state.maxPhotos;
 
     function triggerFlash() {
@@ -87,6 +90,8 @@ export function initializeCountdown(state) {
     // Setup capture functionality
     const captureButton = document.getElementById('captureButton');
     
+    let currentPhotoIndex = -1; // Add this variable to track current photo
+
     function capturePhoto() {
         if (state.photos.length >= state.maxPhotos) {
             showMaxPhotosPopup();
@@ -130,14 +135,94 @@ export function initializeCountdown(state) {
         const nextButton = document.getElementById('nextButton');
         retakeButton.disabled = false;
         nextButton.disabled = false;
+
+        // Update capture button text
+        updateCaptureButtonText();
     }
 
-    // Add click handler
-    captureButton.addEventListener('click', async () => {
-        if (state.isCountingDown) return;
-        const countdownComplete = await state.startCountdown();
-        if (countdownComplete) {
-            capturePhoto();
+    function updateCaptureButtonText() {
+        const remainingPhotos = state.maxPhotos - state.photos.length;
+        const captureButton = document.getElementById('captureButton');
+        
+        if (remainingPhotos === state.maxPhotos) {
+            captureButton.innerHTML = '<i class="fas fa-camera"></i>';
+        } else if (remainingPhotos > 0) {
+            captureButton.innerHTML = `<i class="fas fa-camera"></i><span class="ml-2">${remainingPhotos} More Photo${remainingPhotos > 1 ? 's' : ''}</span>`;
+        } else {
+            captureButton.innerHTML = '<i class="fas fa-camera"></i>';
+        }
+    }
+
+    // Add hidePreview function locally since it's specific to this module
+    function hidePreview() {
+        const previewPopup = document.getElementById('previewPopup');
+        previewPopup.classList.remove('flex');
+        previewPopup.classList.add('hidden');
+        currentPhotoIndex = -1;
+    }
+
+    // Update delete functionality to also update capture button text
+    document.getElementById('deletePhoto').addEventListener('click', () => {
+        if (currentPhotoIndex > -1) {
+            state.photos.splice(currentPhotoIndex, 1);
+            updateThumbnails(state.photos);
+            updateButtons(state);
+            photoCountElement.textContent = state.photos.length;
+            hidePreview();
+            updateCaptureButtonText();
         }
     });
+
+    // Update retake button to also update capture button text
+    document.getElementById('retakeButton').addEventListener('click', () => {
+        if (state.photos.length > 0) {
+            // Remove only last photo
+            state.photos.pop();
+            updateThumbnails(state.photos);
+            updateButtons(state);
+            photoCountElement.textContent = state.photos.length;
+            updateCaptureButtonText();
+        }
+    });
+
+    // Initialize capture button text
+    updateCaptureButtonText();
+
+    // Add auto-capture sequence functionality
+    state.startAutoSequence = async () => {
+        if (state.isCountingDown) return;
+        
+        // Calculate remaining photos needed
+        const remainingPhotos = state.maxPhotos - state.photos.length;
+        
+        if (remainingPhotos <= 0) {
+            showMaxPhotosPopup();
+            return;
+        }
+        
+        // Take remaining number of photos in sequence
+        for (let i = 0; i < remainingPhotos; i++) {
+            const countdownComplete = await state.startCountdown();
+            if (countdownComplete) {
+                capturePhoto();
+                if (i < remainingPhotos - 1) {
+                    // Wait 2 seconds between photos
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+        }
+    };
+
+    // Modify capture button handler for auto sequence
+    captureButton.addEventListener('click', () => {
+        if (state.isCountingDown) return;
+        if (state.photos.length >= state.maxPhotos) {
+            showMaxPhotosPopup();
+            return;
+        }
+        state.startAutoSequence();
+    });
+    
+    // Update the button text to reflect new behavior
+    captureButton.innerHTML = '<i class="fas fa-camera"></i>';
 }

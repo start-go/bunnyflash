@@ -1,18 +1,7 @@
 export function setupEventListeners(state) {
-    const retakeButton = document.getElementById('retakeButton');
+    // Remove the retakeButton event listener from here since it's handled in countdown.js
     const nextButton = document.getElementById('nextButton');
     const photoCountElement = document.getElementById('photoCount');
-
-    retakeButton.addEventListener('click', () => {
-        if (state.photos.length > 0) {
-            state.photos.pop();
-            updateThumbnails(state.photos);
-            updateButtons(state);
-            
-            // Update photo counter
-            photoCountElement.textContent = state.photos.length;
-        }
-    });
 
     nextButton.addEventListener('click', () => {
         if (state.photos.length > 0) {

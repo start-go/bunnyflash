@@ -62,7 +62,6 @@ document.addEventListener("click", (e) => {
 });
 
 // State variables
-let selectedFrame = "none";
 let patternScale = 50;
 let customImageData = null;
 
@@ -73,7 +72,7 @@ const emojiPatterns = {
     flowers: { emoji: '🌸', spacing: 1.3 }
 };
 
-// Sticker configuration
+// Add available stickers
 const stickerImages = {
     fish: {
         1: "assets/images/frame/fish/1.png",
@@ -142,191 +141,88 @@ const stickerImages = {
         2: "assets/images/frame/sony/2.png",
         3: "assets/images/frame/sony/3.png",
         4: "assets/images/frame/sony/4.png"
+    },
+    cute: {
+        // using emoji
     }
 };
 
-// Improved sticker drawing function to handle different types
-function drawSticker(ctx, x, y, type, stickerWidth = 50, stickerHeight = 40) {
-    // Get current resolution multiplier
-    const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-    
-    // Scale position and dimensions for higher resolution
-    const scaledWidth = stickerWidth * resolutionMultiplier;
-    const scaledHeight = stickerHeight * resolutionMultiplier;
-    
-    if (type === "cute") {
-        ctx.font = `${40 * resolutionMultiplier}px sans-serif`;
+const availableStickers = Object.keys(stickerImages);
+
+// Add state variable for storing selected frame images
+const selectedFrameImages = new Map(); // Store frame image selection for each photo
+
+function addSticker(x, y, stickerType, stickerSize, photoIndex) {
+    if (stickerType === "cute") {
+        ctx.font = `${stickerSize}px sans-serif`;
         ctx.textBaseline = "top";
         ctx.fillText("🐱", x, y);
         return;
     }
-    
-    // Handle image-based stickers
-    if (stickerImages[type]) {
-        const stickerSet = stickerImages[type];
-        // Randomly select an image from the sticker set
-        const keys = Object.keys(stickerSet);
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        const imgSrc = stickerSet[randomKey];
+
+    const stickerSet = stickerImages[stickerType];
+    if (stickerSet) {
+        // Generate a unique key for this sticker position
+        const positionKey = `${photoIndex}_${Math.round(x)}_${Math.round(y)}`;
         
+        // Check if we already have a selected image for this position
+        if (!selectedFrameImages.has(positionKey)) {
+            const keys = Object.keys(stickerSet);
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
+            selectedFrameImages.set(positionKey, stickerSet[randomKey]);
+        }
+
+        const imgSrc = selectedFrameImages.get(positionKey);
         const img = new Image();
         img.src = imgSrc;
         img.onload = () => {
-            // Maintain aspect ratio if height is provided
-            if (scaledHeight) {
-                const aspectRatio = img.width / img.height;
-                const calculatedWidth = scaledHeight * aspectRatio;
-                ctx.drawImage(img, x, y, calculatedWidth, scaledHeight);
+            let stickerWidth = stickerSize;
+            let stickerHeight = stickerSize;
+            
+            // Maintain aspect ratio
+            const aspectRatio = img.width / img.height;
+            if (img.width > img.height) {
+                stickerHeight = stickerWidth / aspectRatio;
             } else {
-                ctx.drawImage(img, x, y, scaledWidth, scaledWidth);
+                stickerWidth = stickerHeight * aspectRatio;
             }
+            
+            ctx.drawImage(img, x - stickerWidth / 2, y - stickerHeight / 2, stickerWidth, stickerHeight);
         };
     }
 }
 
-const frames = {
-    none: {
-        draw: () => {} // No overlay
-    },
-    fish: {
-        draw: (ctx, x, y, width, height) => {
-            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-            // Define positions as fractions or percentages of the image dimensions
-            // This ensures consistent placement regardless of resolution
-            const positions = [
-                [x + 11 * resolutionMultiplier, y + 5 * resolutionMultiplier], 
-                [x - 18 * resolutionMultiplier, y + 95 * resolutionMultiplier], 
-                [x + width - 160 * resolutionMultiplier, y + 10 * resolutionMultiplier], 
-                [x + width - 1 * resolutionMultiplier, y + 50 * resolutionMultiplier],
-                [x + 120 * resolutionMultiplier, y + height - 20 * resolutionMultiplier], 
-                [x + 20 * resolutionMultiplier, y + height - 20 * resolutionMultiplier], 
-                [x + width - 125 * resolutionMultiplier, y + height - 5 * resolutionMultiplier],
-                [x + width - 10 * resolutionMultiplier, y + height - 45 * resolutionMultiplier]
-            ];
-            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'fish'));
-        }
-    },
-    combined: {
-        draw: (ctx, x, y, width, height) => {
-            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-            const positions = [
-                [x + 15 * resolutionMultiplier, y - 10 * resolutionMultiplier], 
-                [x + width - 70 * resolutionMultiplier, y - 5 * resolutionMultiplier], 
-                [x + width/2 - 30 * resolutionMultiplier, y - 20 * resolutionMultiplier],
-                [x + 10 * resolutionMultiplier, y + height - 40 * resolutionMultiplier], 
-                [x + width - 60 * resolutionMultiplier, y + height - 45 * resolutionMultiplier], 
-                [x + width/2 - 15 * resolutionMultiplier, y + height - 25 * resolutionMultiplier],
-                [x - 15 * resolutionMultiplier, y + height/2], 
-                [x + width - 15 * resolutionMultiplier, y + height/2 - 30 * resolutionMultiplier]
-            ];
-            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'combined', 65, 65));
-        }
-    },
-    pink: {
-        draw: (ctx, x, y, width, height) => {
-            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-            const positions = [
-                [5 * resolutionMultiplier, 5 * resolutionMultiplier], 
-                [width - 45 * resolutionMultiplier, 8 * resolutionMultiplier], 
-                [width/3 * resolutionMultiplier, -10 * resolutionMultiplier], 
-                [2*width/3 * resolutionMultiplier, -5 * resolutionMultiplier],
-                [8 * resolutionMultiplier, height - 35 * resolutionMultiplier], 
-                [width - 40 * resolutionMultiplier, height - 30 * resolutionMultiplier], 
-                [width/2 * resolutionMultiplier, height - 20 * resolutionMultiplier]
-            ];
-            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'pink', 40, 40));
-        }
-    },
-    redicon: {
-        draw: (ctx, x, y, width, height) => {
-            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-            const positions = [
-                [10 * resolutionMultiplier, 10 * resolutionMultiplier], 
-                [width - 50 * resolutionMultiplier, 5 * resolutionMultiplier], 
-                [width/2 - 20 * resolutionMultiplier, -5 * resolutionMultiplier],
-                [20 * resolutionMultiplier, height - 30 * resolutionMultiplier], 
-                [width - 55 * resolutionMultiplier, height - 25 * resolutionMultiplier], 
-                [width/2 + 10 * resolutionMultiplier, height - 15 * resolutionMultiplier],
-                [-10 * resolutionMultiplier, height/3 * resolutionMultiplier], 
-                [width + 5 * resolutionMultiplier, 2*height/3 * resolutionMultiplier]
-            ];
-            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'redicon', 45, 45));
-        }
-    },
-    sea: {
-        draw: (ctx, x, y, width, height) => {
-            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-            const positions = [];
-            // Create a wavy pattern along the edges
-            for (let i = 0; i < 4; i++) {
-                positions.push([i * width/3 * resolutionMultiplier, -5 * resolutionMultiplier - Math.sin(i) * 10 * resolutionMultiplier]);
-                positions.push([i * width/3 * resolutionMultiplier, height - 25 * resolutionMultiplier + Math.sin(i) * 10 * resolutionMultiplier]);
-            }
-            // Add some on the sides
-            positions.push([-15 * resolutionMultiplier, height/3 * resolutionMultiplier]);
-            positions.push([-10 * resolutionMultiplier, 2*height/3 * resolutionMultiplier]);
-            positions.push([width - 15 * resolutionMultiplier, height/4 * resolutionMultiplier]);
-            positions.push([width - 10 * resolutionMultiplier, 3*height/4 * resolutionMultiplier]);
-            
-            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'sea', 50, 40));
-        }
-    },
-    sony: {
-        draw: (ctx, x, y, width, height) => {
-            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-            const positions = [
-                [width/2 - 100 * resolutionMultiplier, -15 * resolutionMultiplier], 
-                [width/2 + 40 * resolutionMultiplier, -12 * resolutionMultiplier],
-                [10 * resolutionMultiplier, height/2 * resolutionMultiplier], 
-                [width - 50 * resolutionMultiplier, height/2 * resolutionMultiplier],
-                [width/2 - 70 * resolutionMultiplier, height - 25 * resolutionMultiplier], 
-                [width/2 + 30 * resolutionMultiplier, height - 30 * resolutionMultiplier]
-            ];
-            positions.forEach(([px, py]) => drawSticker(ctx, px, py, 'sony', 60, 50));
-        }
-    },
-    cute: {
-        draw: (ctx, x, y, width, height) => {
-            const resolutionMultiplier = parseInt(canvas.dataset.resolutionMultiplier || "2");
-            ctx.font = `${30 * resolutionMultiplier}px sans-serif`;
-            ctx.textBaseline = "top";
-            
-            const emojis = [
-                ["🐱", x + 20 * resolutionMultiplier, y + 10 * resolutionMultiplier], 
-                ["🐶", x + width - 50 * resolutionMultiplier, y + 20 * resolutionMultiplier],
-                ["🐰", x + 20 * resolutionMultiplier, y + height - 40 * resolutionMultiplier], 
-                ["🐻", x + width - 50 * resolutionMultiplier, y + height - 40 * resolutionMultiplier]
-            ];
-            
-            emojis.forEach(([emoji, px, py]) => ctx.fillText(emoji, px, py));
-        }
-    },
-    random: {
-        draw: (ctx, x, y, width, height) => {
-            // Choose a random sticker type excluding 'none', 'cute', and 'random'
-            const stickerTypes = Object.keys(stickerImages);
-            const randomType = stickerTypes[Math.floor(Math.random() * stickerTypes.length)];
-            
-            // Generate random positions
-            const positions = [];
-            for (let i = 0; i < 8; i++) {
-                const px = Math.random() * width;
-                const py = (i < 4) 
-                    ? -10 - Math.random() * 20 // Top area
-                    : height + Math.random() * 10; // Bottom area
-                positions.push([px, py]);
-            }
-            
-            // Add some on the sides
-            for (let i = 0; i < 4; i++) {
-                positions.push([-20, Math.random() * height]); // Left
-                positions.push([width + 5, Math.random() * height]); // Right
-            }
-            
-            positions.forEach(([px, py]) => drawSticker(ctx, x + px, y + py, randomType, 50, 40));
-        }
-    }
-};
+// Add tap event listener to the canvas
+let selectedSticker = null;
+
+// Remove tap event listener
+// canvas.addEventListener("click", handleStickerPlacement);
+// canvas.addEventListener("touchstart", handleStickerPlacement);
+
+// Populate the sticker panel
+// const stickerPanel = document.getElementById("stickerPanel");
+// availableStickers.forEach(stickerType => {
+//     const btn = document.createElement("button");
+//     btn.textContent = stickerType;
+//     btn.addEventListener("click", () => {
+//         selectedSticker = stickerType;
+//     });
+//     stickerPanel.appendChild(btn);
+// });
+
+// Add sticker selection dropdown
+availableStickers.forEach(stickerType => {
+    const option = document.createElement("option");
+    option.value = stickerType;
+    option.textContent = stickerType.charAt(0).toUpperCase() + stickerType.slice(1);
+    stickerSelect.appendChild(option);
+});
+
+stickerSelect.addEventListener("change", (e) => {
+    selectedSticker = e.target.value;
+    selectedFrameImages.clear(); // Clear stored frames when changing sticker type
+    generatePhotoStrip(true);
+});
 
 // Add a debounce utility function
 function debounce(func, wait) {
@@ -466,19 +362,71 @@ async function generatePhotoStrip(redrawBackground = true) {
         // Draw the photo
         drawPhoto(img, borderSize, yOffset, imgWidth, imgHeight);
         
-        // Apply the selected sticker frame
-        if (frames[selectedFrame]) {
-            // For positioning the stickers correctly, we need to use the original coordinates
-            // but the drawSticker function will handle the scaling based on resolution
-            frames[selectedFrame].draw(ctx, borderSize, yOffset, imgWidth, imgHeight);
-        }
         ctx.restore();
     });
 
     // Step 3: Draw copyright and timestamp
     drawTimestampAndCopyright();
+    
+    // Draw border stickers for each photo
+    preloadedImages.forEach((img, index) => {
+        const yOffset = borderSize + (imgHeight + photoSpacing) * index;
+        drawBorderStickers(borderSize, imgWidth, imgHeight, yOffset, resolutionMultiplier, index);
+    });
 
     return true;
+}
+
+function drawBorderStickers(borderSize, imgWidth, imgHeight, yOffset, resolutionMultiplier, photoIndex) {
+    if (!selectedSticker) {
+        // Clear stored frame images if no sticker is selected
+        selectedFrameImages.clear();
+        return;
+    }
+
+    const stickerSize = borderSize / 2; // Base sticker size
+    const margin = 2 * resolutionMultiplier; // Reduced margin (was 5)
+    const spacing = stickerSize * 1.1; // Reduced spacing (was 1.2)
+    
+    // Calculate exact coordinates for photo borders
+    const photoLeft = borderSize;
+    const photoRight = borderSize + imgWidth;
+    const photoTop = yOffset;
+    const photoBottom = yOffset + imgHeight;
+
+    // Adjust offset for more precise border placement
+    const offsetX = spacing / 2; // Add offset to center first and last stickers
+    
+    // Top border
+    for (let x = photoLeft + offsetX; x <= photoRight - offsetX; x += spacing) {
+        addSticker(x, photoTop - margin, selectedSticker, stickerSize, photoIndex);
+    }
+
+    // Bottom border
+    for (let x = photoLeft + offsetX; x <= photoRight - offsetX; x += spacing) {
+        addSticker(x, photoBottom + margin, selectedSticker, stickerSize, photoIndex);
+    }
+
+    // Left border
+    for (let y = photoTop + offsetX; y <= photoBottom - offsetX; y += spacing) {
+        addSticker(photoLeft - margin, y, selectedSticker, stickerSize, photoIndex);
+    }
+
+    // Right border
+    for (let y = photoTop + offsetX; y <= photoBottom - offsetX; y += spacing) {
+        addSticker(photoRight + margin, y, selectedSticker, stickerSize, photoIndex);
+    }
+    
+    // Add corner stickers with slightly larger size for emphasis
+    const cornerSize = stickerSize * 1.2;
+    // Top-left corner
+    addSticker(photoLeft, photoTop, selectedSticker, cornerSize, photoIndex);
+    // Top-right corner
+    addSticker(photoRight, photoTop, selectedSticker, cornerSize, photoIndex);
+    // Bottom-left corner
+    addSticker(photoLeft, photoBottom, selectedSticker, cornerSize, photoIndex);
+    // Bottom-right corner
+    addSticker(photoRight, photoBottom, selectedSticker, cornerSize, photoIndex);
 }
 
 // Extract pattern drawing to a separate async function
@@ -556,21 +504,54 @@ function drawPhoto(img, x, y, targetWidth, targetHeight) {
         sourceY = (img.height - sourceHeight) / 2;
     }
 
-    // Add rounded corners
+    const radius = 20; // Increase corner radius for more noticeable rounding
+    
+    // First draw the background/pattern with rounded corners
+    ctx.save();
     ctx.beginPath();
-    ctx.moveTo(x + 10, y);
-    ctx.lineTo(x + targetWidth - 10, y);
-    ctx.quadraticCurveTo(x + targetWidth, y, x + targetWidth, y + 10);
-    ctx.lineTo(x + targetWidth, y + targetHeight - 10);
-    ctx.quadraticCurveTo(x + targetWidth, y + targetHeight, x + targetWidth - 10, y + targetHeight);
-    ctx.lineTo(x + 10, y + targetHeight);
-    ctx.quadraticCurveTo(x, y + targetHeight, x, y + targetHeight - 10);
-    ctx.lineTo(x, y + 10);
-    ctx.quadraticCurveTo(x, y, x + 10, y);
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + targetWidth - radius, y);
+    ctx.quadraticCurveTo(x + targetWidth, y, x + targetWidth, y + radius);
+    ctx.lineTo(x + targetWidth, y + targetHeight - radius);
+    ctx.quadraticCurveTo(x + targetWidth, y + targetHeight, x + targetWidth - radius, y + targetHeight);
+    ctx.lineTo(x + radius, y + targetHeight);
+    ctx.quadraticCurveTo(x, y + targetHeight, x, y + targetHeight - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
     ctx.closePath();
+    
+    // Fill with current background
+    if (backgroundType.value === "gradient") {
+        ctx.fillStyle = createGradient();
+    } else {
+        ctx.fillStyle = solidColor.value;
+    }
+    ctx.fill();
+    
+    // Apply pattern if needed
+    if (patternType.value !== "none") {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.fill();
+    }
+    
+    // Create clipping path for the photo
     ctx.clip();
-
+    
+    // Draw the photo within the clipping path
     ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, x, y, targetWidth, targetHeight);
+    
+    // Add a subtle shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    
+    // Draw a subtle border
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    ctx.restore();
 }
 
 // Update createEmojiPattern function to handle transparency correctly
@@ -751,11 +732,12 @@ customImage.addEventListener("change", (e) => {
     }
 });
 
-stickerSelect.addEventListener("change", (e) => {
-    selectedFrame = e.target.value;
-    // Force a complete redraw to clean up previous stickers
-    generatePhotoStrip(true);
-});
+// Remove stickerSelect event listener
+// stickerSelect.addEventListener("change", (e) => {
+//     selectedFrame = e.target.value;
+//     // Force a complete redraw to clean up previous stickers
+//     generatePhotoStrip(true);
+// });
 
 // Add event listener for resolution changes
 resolutionSelect.addEventListener("change", () => {

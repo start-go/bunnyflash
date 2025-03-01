@@ -12,7 +12,7 @@ async function initialize() {
         overlayImage: null,
         filter: 'none',
         isFlipped: false,
-        maxPhotos: 5,
+        maxPhotos: 4, // Update max photos to 4
         overlay: null,
         mobileMenuOpen: false // Add state to track menu open status
     };
