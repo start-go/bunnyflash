@@ -19,7 +19,7 @@ A delightful web application for creating customizable photo strips with fun pat
 git clone https://github.com/erry-az/bunnypix.git
 ```
 
-2. Open `preview.html` in your web browser
+2. Open `index.html` in your web browser
 
 ## Usage 💡
 
