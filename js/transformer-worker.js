@@ -5,12 +5,11 @@ let processor = null;
 
 async function initModel() {
   try {
-    const useWebGPU = self.navigator && self.navigator.gpu;
+    const useWebGPU = false;
     
     if (useWebGPU) {
       model = await AutoModel.from_pretrained("Xenova/modnet", {
         device: "webgpu",
-        config: { model_type: 'modnet', architectures: ['MODNet'] }
       });
       processor = await AutoProcessor.from_pretrained("Xenova/modnet");
       self.postMessage({ type: 'log', message: 'Initialized WebGPU model' });
