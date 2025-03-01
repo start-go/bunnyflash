@@ -1,12 +1,25 @@
 export function setupEventListeners(state) {
-    // Remove the retakeButton event listener from here since it's handled in countdown.js
     const nextButton = document.getElementById('nextButton');
     const photoCountElement = document.getElementById('photoCount');
 
-    nextButton.addEventListener('click', () => {
+    nextButton.addEventListener('click', async () => {
         if (state.photos.length > 0) {
-            localStorage.setItem('photobooth_photos', JSON.stringify(state.photos));
-            window.location.href = 'preview.html';
+            try {
+                // Compress photos before storing
+                const compressedPhotos = await Promise.all(state.photos.map(photo => {
+                    return compressImage(photo, 0.7); // 70% quality
+                }));
+                
+                localStorage.setItem('photobooth_photos', JSON.stringify(compressedPhotos));
+                window.location.href = 'preview.html';
+            } catch (error) {
+                if (error.name === 'QuotaExceededError') {
+                    alert('Storage limit exceeded. Please try with fewer photos or lower quality.');
+                } else {
+                    console.error('Storage error:', error);
+                    alert('Unable to save photos. Please try again.');
+                }
+            }
         }
     });
 
@@ -109,8 +122,28 @@ function createThumbnail(photoData, index) {
     return img;
 }
 
+// Add this new function to compress images
+function compressImage(base64String, quality) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Convert to more efficient format and compress
+            resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = base64String;
+    });
+}
+
 export function capturePhoto(state) {
-    const hiddenCanvas = document.getElementById('hiddenCanvas');
-    // Use the high-resolution canvas for the actual photo
-    return hiddenCanvas.toDataURL('image/jpeg', 0.95);
+    const canvas = document.getElementById('webcam-canvas');
+    // Reduce quality to 70% to save space
+    return canvas.toDataURL('image/jpeg', 0.7);
 }

@@ -2,14 +2,16 @@ import { applyFilter } from './filters.js';
 
 export async function initializeCamera(state) {
     const canvas = document.getElementById('webcam-canvas');
-    const hiddenCanvas = document.getElementById('hiddenCanvas');
     const ctx = canvas.getContext('2d');
-    const hiddenCtx = hiddenCanvas.getContext('2d');
     const container = document.getElementById('webcam-container');
     
-    // Set hidden canvas to high resolution
-    hiddenCanvas.width = 1920;  // Full HD width
-    hiddenCanvas.height = 1440; // 4:3 aspect ratio at full HD
+    // Set canvas to high resolution for capture but display at lower scale
+    canvas.width = 1920;  // Full HD width
+    canvas.height = 1440; // 4:3 aspect ratio at full HD
+    
+    // Style the canvas to display at a smaller size
+    canvas.style.width = '70%';
+    canvas.style.height = 'auto';
     
     // Add iOS Safari specific constraints
     async function getMediaConstraints() {
@@ -18,9 +20,7 @@ export async function initializeCamera(state) {
         if (isIOS) {
             return {
                 video: {
-                    facingMode: 'user',
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    facingMode: 'user'
                 },
                 audio: false
             };
@@ -43,12 +43,7 @@ export async function initializeCamera(state) {
         const videoWidth = state.videoElement.videoWidth;
         const videoHeight = state.videoElement.videoHeight;
         
-        // Set display canvas to a fixed 4:3 aspect ratio, but 30% smaller
-        const containerWidth = container.clientWidth * 0.7;
-        canvas.width = containerWidth;
-        canvas.height = containerWidth * (3/4);
-        
-        // Calculate scaling and positioning for both canvases
+        // Calculate scaling and positioning
         let drawWidth, drawHeight, drawX = 0, drawY = 0;
         const videoRatio = videoWidth / videoHeight;
         const canvasRatio = canvas.width / canvas.height;
@@ -63,11 +58,10 @@ export async function initializeCamera(state) {
             drawY = (videoHeight - drawHeight) / 2;
         }
         
-        // Clear both canvases
+        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        hiddenCtx.clearRect(0, 0, hiddenCanvas.width, hiddenCanvas.height);
         
-        // Draw to display canvas
+        // Draw to canvas
         ctx.save();
         if (state.isFlipped) {
             ctx.scale(-1, 1);
@@ -80,36 +74,17 @@ export async function initializeCamera(state) {
         );
         ctx.restore();
         
-        // Draw to hidden canvas (high resolution)
-        hiddenCtx.save();
-        if (state.isFlipped) {
-            hiddenCtx.scale(-1, 1);
-            hiddenCtx.translate(-hiddenCanvas.width, 0);
-        }
-        hiddenCtx.drawImage(
-            state.videoElement,
-            drawX, drawY, drawWidth, drawHeight,
-            0, 0, hiddenCanvas.width, hiddenCanvas.height
-        );
-        hiddenCtx.restore();
-        
-        // Apply current filter to display canvas
+        // Apply current filter
         if (state.filter !== 'none') {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             applyFilter(imageData.data, state.filter);
             ctx.putImageData(imageData, 0, 0);
-            
-            // Also apply to hidden canvas
-            const hiddenImageData = hiddenCtx.getImageData(0, 0, hiddenCanvas.width, hiddenCanvas.height);
-            applyFilter(hiddenImageData.data, state.filter);
-            hiddenCtx.putImageData(hiddenImageData, 0, 0);
         }
         
-        // Draw overlay if exists (on both canvases)
+        // Draw overlay if exists
         if (state.overlayImage && state.overlay) {
             try {
                 state.drawOverlay(ctx);
-                state.drawOverlay(hiddenCtx, true); // Pass true to indicate high-res canvas
             } catch (error) {
                 console.error('Error drawing overlay:', error);
             }
@@ -118,11 +93,10 @@ export async function initializeCamera(state) {
         requestAnimationFrame(() => renderWebcam());
     }
 
-    // Update window resize handler to maintain 4:3 aspect ratio at 70% size
+    // Update window resize handler to maintain aspect ratio
     window.addEventListener('resize', () => {
-        const containerWidth = container.clientWidth * 0.7; // 70% of original size
-        canvas.width = containerWidth;
-        canvas.height = containerWidth * (3/4); // 4:3 aspect ratio
+        const containerWidth = container.clientWidth * 0.7;
+        canvas.style.width = `${containerWidth}px`;
     });
 
     const webcamSelect = document.getElementById('webcamSelect');
