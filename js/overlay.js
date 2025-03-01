@@ -467,6 +467,30 @@ export async function initializeOverlay(state) {
     }
 
     // Setup event handlers
+    async function hasUsableTransparency(img) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Count pixels with transparency
+        let transparentPixels = 0;
+        let totalPixels = data.length / 4;
+        
+        for (let i = 3; i < data.length; i += 4) {
+            if (data[i] < 250) { // Allow some tolerance for compression artifacts
+                transparentPixels++;
+            }
+        }
+        
+        // Consider the transparency useful if at least 5% of pixels are transparent
+        return transparentPixels / totalPixels > 0.05;
+    }
+
     function handleOverlayToggle(event) {
         // Determine if this click came from the mobile menu
         const isFromMobileMenu = event && event.currentTarget && 
@@ -490,9 +514,14 @@ export async function initializeOverlay(state) {
                     
                     img.onload = async () => {
                         try {
-                            let processedImage = file.type === 'image/png' && await checkTransparency(img) 
-                                ? img 
-                                : await removeBackground(img);
+                            // Check if it's a PNG with usable transparency
+                            let processedImage;
+                            if (file.type === 'image/png') {
+                                const hasTransparency = await hasUsableTransparency(img);
+                                processedImage = hasTransparency ? img : await removeBackground(img);
+                            } else {
+                                processedImage = await removeBackground(img);
+                            }
                             
                             state.overlayImage = autoCropImage(processedImage);
                             state.overlay.width = state.overlayImage.width;
